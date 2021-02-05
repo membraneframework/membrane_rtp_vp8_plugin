@@ -2,11 +2,11 @@ defmodule Membrane.Template.Mixfile do
   use Mix.Project
 
   @version "0.1.0"
-  @github_url "https://github.com/membraneframework/membrane_template_plugin"
+  @github_url "https://github.com/membraneframework/membrane_rtp_vp8_plugin"
 
   def project do
     [
-      app: :membrane_template_plugin,
+      app: :membrane_rtp_vp9_plugin,
       version: @version,
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -14,11 +14,11 @@ defmodule Membrane.Template.Mixfile do
       deps: deps(),
 
       # hex
-      description: "Template Plugin for Membrane Multimedia Framework",
+      description: "Membrane Multimedia Framework (RTP VP8)",
       package: package(),
 
       # docs
-      name: "Membrane Template plugin",
+      name: "Membrane: RTP VP9",
       source_url: @github_url,
       homepage_url: "https://membraneframework.org",
       docs: docs()
@@ -27,7 +27,8 @@ defmodule Membrane.Template.Mixfile do
 
   def application do
     [
-      extra_applications: []
+      extra_applications: [],
+      mod: {Membrane.RTP.VP8.Plugin.App, []}
     ]
   end
 
@@ -59,7 +60,7 @@ defmodule Membrane.Template.Mixfile do
       main: "readme",
       extras: ["README.md", "LICENSE"],
       source_ref: "v#{@version}",
-      nest_modules_by_prefix: [Membrane.Template]
+      nest_modules_by_prefix: [Membrane.RTP.VP8]
     ]
   end
 end
