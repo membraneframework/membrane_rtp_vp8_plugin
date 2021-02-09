@@ -6,7 +6,7 @@ defmodule Membrane.Template.Mixfile do
 
   def project do
     [
-      app: :membrane_rtp_vp9_plugin,
+      app: :membrane_rtp_vp8_plugin,
       version: @version,
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -18,7 +18,7 @@ defmodule Membrane.Template.Mixfile do
       package: package(),
 
       # docs
-      name: "Membrane: RTP VP9",
+      name: "Membrane: RTP VP8",
       source_url: @github_url,
       homepage_url: "https://membraneframework.org",
       docs: docs()
@@ -37,11 +37,22 @@ defmodule Membrane.Template.Mixfile do
 
   defp deps do
     [
-      {:membrane_core, "~> 0.6.0"},
+      {:membrane_core,
+       github: "membraneframework/membrane_core", branch: "remote_stream", override: true},
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.4", only: :dev, runtime: false},
-      {:membrane_rtp_format, "~> 0.3.1"}
+      {:membrane_rtp_format, "~> 0.3.1"},
+      {:membrane_remote_stream_format, "~> 0.1.0"},
+      {:membrane_vp8_format, github: "membraneframework/membrane_vp8_format", branch: "master"},
+      {:membrane_element_pcap, github: "membraneframework/membrane-element-pcap", only: :test},
+      {:membrane_file_plugin, "~> 0.5.0", only: :test},
+      {:membrane_rtp_plugin, "~> 0.5.0", only: :test},
+      {:ex_libsrtp, "~> 0.1.0"},
+      {:membrane_element_ivf,
+       github: "membraneframework/membrane_ivf_plugin",
+       branch: "moved-from-vp9-plugin",
+       only: :test}
     ]
   end
 
