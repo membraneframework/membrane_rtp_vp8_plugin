@@ -18,7 +18,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
                                        T/K: |TID|Y| KEYIDX  | (OPTIONAL)
                                             +-+-+-+-+-+-+-+-+
 
-  Structure with single octet picture ID on the left and structure with extender
+  Structure with single octet picture ID on the left and structure with extended
   picture id on the right (when M bit is set)
   """
 
@@ -45,6 +45,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
           y: bit(),
           keyidx: keyidx()
         }
+
   @enforce_keys [:x, :n, :s, :partition_index]
   defstruct @enforce_keys ++
               [

@@ -23,8 +23,11 @@ defmodule Membrane.RTP.VP8.Frame do
           {:ok, binary(), t()}
           | {:incomplete, t()}
           | {:error,
-             :packet_malformed | :invalid_first_packet | :not_rtp_buffer | :missing_packet,
-             :missing_packet | :timestamps_not_equal}
+             :packet_malformed
+             | :invalid_first_packet
+             | :not_rtp_buffer
+             | :missing_packet
+             | :timestamps_not_equal}
   def parse(rtp_buffer, acc) do
     with %Buffer{
            payload: payload,
@@ -57,6 +60,18 @@ defmodule Membrane.RTP.VP8.Frame do
           | {:error, :invalid_first_packet | :missing_packet | :timestamps_not_equal}
   defp do_parse(payload_descriptor, payload, timestamp, sequence_number, acc)
 
+  # when s bit is 1 and partition_index is 0 it means that it is first packet of new frame
+  defp do_parse(
+         %PayloadDescriptor{s: 1, partition_index: 0},
+         payload,
+         timestamp,
+         sequence_number,
+         %__MODULE__{fragments: []} = acc
+       ) do
+    {:incomplete,
+     %{acc | last_seq_num: sequence_number, last_timestamp: timestamp, fragments: [payload]}}
+  end
+
   defp do_parse(
          %PayloadDescriptor{s: 1, partition_index: 0},
          payload,
@@ -64,19 +79,22 @@ defmodule Membrane.RTP.VP8.Frame do
          sequence_number,
          acc
        ) do
-    case acc do
-      # first packet of a first frame in a stream
-      %__MODULE__{last_seq_num: nil, last_timestamp: nil} ->
-        {:incomplete,
-         %{acc | last_seq_num: sequence_number, last_timestamp: timestamp, fragments: [payload]}}
+    {frame, acc} = flush(acc)
 
-      # not a first packet of a stream so there must be something in accumulator
-      _not_new_stream ->
-        {frame, acc} = flush(acc)
+    {:ok, frame,
+     %{acc | last_seq_num: sequence_number, last_timestamp: timestamp, fragments: [payload]}}
+  end
 
-        {:ok, frame,
-         %{acc | last_seq_num: sequence_number, last_timestamp: timestamp, fragments: [payload]}}
-    end
+  # when payload descriptor indicates that it is not a first packet but accumulator is empty
+  # it means that first packet is invalid
+  defp do_parse(
+         _payload_descriptor,
+         _payload,
+         _timestamp,
+         _sequence_number,
+         %__MODULE__{fragments: []}
+       ) do
+    {:error, :invalid_first_packet}
   end
 
   # payload is fragment of currently accumulated frame
