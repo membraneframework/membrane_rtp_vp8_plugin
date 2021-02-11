@@ -49,6 +49,11 @@ defmodule Membrane.RTP.VP8.Payloader do
   def handle_init(options), do: {:ok, Map.merge(%State{}, Map.from_struct(options))}
 
   @impl true
+  def handle_caps(:input, _caps, _context, state) do
+    {:ok, state}
+  end
+  
+  @impl true
   def handle_prepared_to_playing(_ctx, state) do
     {{:ok, caps: {:output, %RTP{}}}, state}
   end
