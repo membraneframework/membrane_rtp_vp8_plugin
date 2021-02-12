@@ -52,7 +52,7 @@ defmodule Membrane.RTP.VP8.Payloader do
   def handle_caps(:input, _caps, _context, state) do
     {:ok, state}
   end
-  
+
   @impl true
   def handle_prepared_to_playing(_ctx, state) do
     {{:ok, caps: {:output, %RTP{}}}, state}
@@ -66,45 +66,35 @@ defmodule Membrane.RTP.VP8.Payloader do
   @impl true
   def handle_process(
         :input,
-        %Buffer{metadata: metadata, payload: payload},
+        buffer,
         _ctx,
         state
       ) do
+    %Buffer{metadata: metadata, payload: payload} = buffer
     chunk_count = ceil(byte_size(payload) / state.max_payload_size)
     max_chunk_size = ceil(byte_size(payload) / chunk_count)
 
-    {buffers, _i} =
+    buffers =
       payload
       |> Bunch.Binary.chunk_every_rem(max_chunk_size)
       |> add_descriptors()
-      |> Enum.map_reduce(1, fn chunk, i ->
-        {%Buffer{
-           metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: i == chunk_count}),
-           payload: chunk
-         }, i + 1}
-      end)
+      |> Enum.map(
+        &%Buffer{
+          metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: false}),
+          payload: &1
+        }
+      )
+      |> List.update_at(-1, &Bunch.Struct.put_in(&1, [:metadata, :rtp, :marker], true))
 
     {{:ok, [buffer: {:output, buffers}, redemand: :output]}, state}
   end
 
-  defp add_descriptors({[], chunk}), do: [@first_fragment_descriptor <> chunk]
-
-  defp add_descriptors({[chunk], <<>>}), do: [@first_fragment_descriptor <> chunk]
-
-  defp add_descriptors({chunks, <<>>}) do
-    [first_chunk | rest] = chunks
-
-    rest = rest |> Enum.map(&(@following_fragment_descriptor <> &1))
-
-    [@first_fragment_descriptor <> first_chunk | rest]
-  end
-
   defp add_descriptors({chunks, last_chunk}) do
+    chunks = if byte_size(last_chunk) > 0, do: chunks ++ [last_chunk], else: chunks
+
     [first_chunk | rest] = chunks
 
-    rest = rest |> Enum.map(&(@following_fragment_descriptor <> &1))
-
-    [@first_fragment_descriptor <> first_chunk | rest] ++
-      [@following_fragment_descriptor <> last_chunk]
+    [@first_fragment_descriptor <> first_chunk] ++
+      Enum.map(rest, &(@following_fragment_descriptor <> &1))
   end
 end
