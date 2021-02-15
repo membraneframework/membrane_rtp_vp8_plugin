@@ -7,12 +7,7 @@ defmodule Membrane.RTP.VP8.Payloader do
 
   alias Membrane.Caps.VP8
   alias Membrane.{Buffer, RemoteStream, RTP}
-
-  # s-bit set and partition index equal to 0
-  @first_fragment_descriptor <<16>>
-
-  # s-bit is 0 as well as partition index
-  @following_fragment_descriptor <<0>>
+  alias Membrane.RTP.VP8.FramePartitions
 
   def_options max_payload_size: [
                 spec: non_neg_integer(),
@@ -21,6 +16,14 @@ defmodule Membrane.RTP.VP8.Payloader do
                 Maximal size of outputted payloads in bytes. RTP packet will contain VP8 payload descriptor which can have max: 6B.
                 The resulting RTP packet will also RTP header (min 12B). After adding UDP header (8B), IPv4 header(min 20B, max 60B)
                 everything should fit in standard MTU size (1500B)
+                """
+              ],
+              fragmentation_method: [
+                spec: :simple | :advanced,
+                default: :simple,
+                description: """
+                If :simple passed payloader doesn't take into account boundaries of frame partitions.
+                When :advanced is used single RTP packet carries data from one and only one partition.
                 """
               ],
               payload_descriptor_type: [
@@ -41,7 +44,8 @@ defmodule Membrane.RTP.VP8.Payloader do
   defmodule State do
     @moduledoc false
     defstruct [
-      :max_payload_size
+      :max_payload_size,
+      :fragmentation_method
     ]
   end
 
@@ -68,33 +72,68 @@ defmodule Membrane.RTP.VP8.Payloader do
         :input,
         buffer,
         _ctx,
-        state
+        %State{fragmentation_method: :simple} = state
       ) do
     %Buffer{metadata: metadata, payload: payload} = buffer
-    chunk_count = ceil(byte_size(payload) / state.max_payload_size)
-    max_chunk_size = ceil(byte_size(payload) / chunk_count)
 
-    buffers =
-      payload
-      |> Bunch.Binary.chunk_every_rem(max_chunk_size)
-      |> add_descriptors()
-      |> Enum.map(
-        &%Buffer{
-          metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: false}),
-          payload: &1
-        }
-      )
-      |> List.update_at(-1, &Bunch.Struct.put_in(&1, [:metadata, :rtp, :marker], true))
+    payloads = split_payload(payload, state.max_payload_size) |> add_descriptors(0)
+
+    buffers = prepare_buffers(payloads, metadata)
 
     {{:ok, [buffer: {:output, buffers}, redemand: :output]}, state}
   end
 
-  defp add_descriptors({chunks, last_chunk}) do
-    chunks = if byte_size(last_chunk) > 0, do: chunks ++ [last_chunk], else: chunks
+  @impl true
+  def handle_process(:input, buffer, _ctx, %State{fragmentation_method: :advanced} = state) do
+    %Buffer{metadata: metadata, payload: payload} = buffer
+
+    partitions = FramePartitions.get_partitions(payload)
+
+    payloads =
+      partitions
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {partition, partition_index} ->
+        partition |> split_payload(state.max_payload_size) |> add_descriptors(partition_index)
+      end)
+
+    buffers = prepare_buffers(payloads, metadata)
+
+    {{:ok, [buffer: {:output, buffers}, redemand: :output]}, state}
+  end
+
+  defp prepare_buffers(payloads, metadata) do
+    payloads
+    |> Enum.map(
+      &%Buffer{
+        metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: false}),
+        payload: &1
+      }
+    )
+    |> List.update_at(-1, &Bunch.Struct.put_in(&1, [:metadata, :rtp, :marker], true))
+  end
+
+  defp split_payload(payload, max_payload_size) do
+    chunk_count = ceil(byte_size(payload) / max_payload_size)
+    max_chunk_size = ceil(byte_size(payload) / chunk_count)
+
+    {chunks, last_chunk} = payload |> Bunch.Binary.chunk_every_rem(max_chunk_size)
+    if last_chunk == <<>>, do: chunks, else: chunks ++ [last_chunk]
+  end
+
+  defp add_descriptors(chunks, 0) do
+    # s-bit set and partition index equal to 0
+    first_fragment_descriptor = <<16>>
+    # s-bit is 0 as well as partition index
+    next_fragment_descriptor = <<0>>
 
     [first_chunk | rest] = chunks
 
-    [@first_fragment_descriptor <> first_chunk] ++
-      Enum.map(rest, &(@following_fragment_descriptor <> &1))
+    [first_fragment_descriptor <> first_chunk] ++
+      Enum.map(rest, &(next_fragment_descriptor <> &1))
+  end
+
+  defp add_descriptors(chunks, partition_index) do
+    descriptor = <<0::5, partition_index::3>>
+    Enum.map(chunks, &(descriptor <> &1))
   end
 end
