@@ -7,12 +7,12 @@ defmodule Membrane.RTP.VP8.Plugin.App do
   def start(_type, _args) do
     PayloadFormat.register(%PayloadFormat{
       encoding_name: :VP8,
-      payload_type: 97,
+      payload_type: 98,
       depayloader: VP8.Depayloader,
       payloader: VP8.Payloader
     })
 
-    PayloadFormat.register_payload_type_mapping(97, :VP8, 90_000)
+    PayloadFormat.register_payload_type_mapping(98, :VP8, 90_000)
     Supervisor.start_link([], strategy: :one_for_one, name: __MODULE__)
   end
 end
