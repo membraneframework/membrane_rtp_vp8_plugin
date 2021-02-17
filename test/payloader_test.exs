@@ -1,7 +1,7 @@
 defmodule Membrane.RTP.VP8.PayloaderTest do
   use ExUnit.Case
 
-  alias Membrane.RTP.VP8.Payloader
+  alias Membrane.RTP.VP8.{Payloader, FrameHeader}
   alias Membrane.RTP.VP8.Payloader.State
   alias Membrane.RTP.VP8.PayloadDescriptor
   alias Membrane.Buffer
@@ -232,5 +232,17 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
              ]},
             payloader_state} ==
              Payloader.handle_process(:input, input_buffer, nil, payloader_state)
+  end
+
+  test "advanced payloading test or real VP8 frame" do
+    {:ok, file} = File.open("./test/fixtures/buffer_capture.dump", [:read])
+    buffer = :erlang.binary_to_term(IO.binread(file, :all))
+
+    IO.inspect(buffer.payload)
+    IO.inspect(FrameHeader.parse(buffer.payload))
+
+    # {:ok, payloader_state} = Payloader.handle_init(%Payloader{fragmentation_method: :advanced})
+
+    # Payloader.handle_process(:input, buffer, nil, payloader_state)
   end
 end

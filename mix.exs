@@ -49,10 +49,11 @@ defmodule Membrane.Template.Mixfile do
       {:membrane_file_plugin, "~> 0.5.0", only: :test},
       {:membrane_rtp_plugin, "~> 0.5.0", only: :test},
       {:ex_libsrtp, "~> 0.1.0"},
-      {:membrane_element_ivf,
+      {:membrane_ivf_plugin,
        github: "membraneframework/membrane_ivf_plugin",
-       branch: "moved-from-vp9-plugin",
-       only: :test}
+       branch: "deserializer",
+       only: :test},
+       {:membrane_buffer_capture_plugin, github: "membraneframework/membrane_buffer_capture_plugin", branch: "capture-maker" ,only: :test}
     ]
   end
 

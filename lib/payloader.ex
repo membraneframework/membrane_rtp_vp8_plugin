@@ -7,7 +7,7 @@ defmodule Membrane.RTP.VP8.Payloader do
 
   alias Membrane.Caps.VP8
   alias Membrane.{Buffer, RemoteStream, RTP}
-  alias Membrane.RTP.VP8.FramePartitions
+  alias Membrane.RTP.VP8.FrameHeader
 
   def_options max_payload_size: [
                 spec: non_neg_integer(),
@@ -87,7 +87,9 @@ defmodule Membrane.RTP.VP8.Payloader do
   def handle_process(:input, buffer, _ctx, %State{fragmentation_method: :advanced} = state) do
     %Buffer{metadata: metadata, payload: payload} = buffer
 
-    partitions = FramePartitions.get_partitions(payload)
+    {:ok, frame_header} = FrameHeader.parse(payload)
+
+    partitions = get_payloads(payload, frame_header.sizes)
 
     payloads =
       partitions
@@ -99,6 +101,17 @@ defmodule Membrane.RTP.VP8.Payloader do
     buffers = prepare_buffers(payloads, metadata)
 
     {{:ok, [buffer: {:output, buffers}, redemand: :output]}, state}
+  end
+
+  defp get_payloads(payload, sizes) do
+    {partitions, last_partition} =
+      sizes
+      |> Enum.reduce({[], payload}, fn size, {partitions, rest} ->
+        <<partition::binary-size(size), rest::binary()>> = rest
+        {[partition | partitions], rest}
+      end)
+
+    Enum.reverse([last_partition | partitions])
   end
 
   defp prepare_buffers(payloads, metadata) do
