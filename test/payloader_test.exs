@@ -114,18 +114,16 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
     input1 = <<1>>
     input2 = <<0>>
 
-    # above gieves us 01000000 00000001 00000000, which gives headers size 1010 -> 10, and frame type -> interframe
-    # so the header size is 13 and lets assume we've got 4 partitions, so last two bits are set to 10
-    header = input0 <> input1 <> input2 <> <<0, 0, 0, 0, 0, 0, 0, 0, 0, 2>>
+    partition0 =
+      <<144, 2, 0, 157, 1, 42, 10, 0, 10, 0, 21, 82, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 0, 5,
+        0, 0>>
 
-    # the header is followed by partition sizes, lets assume each partition is size of 5, note: sizes are in little endian
-    size1 = <<5::24-little>>
-    size2 = <<5::24-little>>
-    size3 = <<5::24-little>>
-    # so the sizes have to be followed by 25 bytes of partitions
-    partitions = for(_i <- 1..20, do: 5) |> :binary.list_to_bin()
+    partition1 = <<5, 5, 5, 5, 5>>
+    partition2 = <<5, 5, 5, 5, 5>>
+    partition3 = <<5, 5, 5, 5, 5>>
+    partition4 = <<5, 5, 5, 5, 5>>
 
-    frame = header <> size1 <> size2 <> size3 <> partitions
+    frame = partition0 <> partition1 <> partition2 <> partition3 <> partition4
 
     input_buffer = %Buffer{payload: frame}
 
@@ -145,7 +143,27 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                           n: 0,
                           s: 1,
                           partition_index: 0
-                        }) <> input0 <> input1 <> input2 <> <<0, 0>>
+                        }) <> <<144, 2, 0, 157, 1>>
+                    },
+                    %Buffer{
+                      metadata: %{rtp: %{marker: false}},
+                      payload:
+                        PayloadDescriptor.serialize(%PayloadDescriptor{
+                          x: 0,
+                          n: 0,
+                          s: 0,
+                          partition_index: 0
+                        }) <> <<42, 10, 0, 10, 0>>
+                    },
+                    %Buffer{
+                      metadata: %{rtp: %{marker: false}},
+                      payload:
+                        PayloadDescriptor.serialize(%PayloadDescriptor{
+                          x: 0,
+                          n: 0,
+                          s: 0,
+                          partition_index: 0
+                        }) <> <<21, 82, 0, 0, 0>>
                     },
                     %Buffer{
                       metadata: %{rtp: %{marker: false}},
@@ -165,7 +183,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                           n: 0,
                           s: 0,
                           partition_index: 0
-                        }) <> <<0, 0, 2, 5, 0>>
+                        }) <> <<5, 0, 0, 5, 0>>
                     },
                     %Buffer{
                       metadata: %{rtp: %{marker: false}},
@@ -175,17 +193,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                           n: 0,
                           s: 0,
                           partition_index: 0
-                        }) <> <<0, 5, 0, 0, 5>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 0
-                        }) <> <<0, 0>>
+                        }) <> <<0, 5, 0, 0>>
                     },
                     %Buffer{
                       metadata: %{rtp: %{marker: false}},
@@ -235,14 +243,15 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
   end
 
   test "advanced payloading test or real VP8 frame" do
-    {:ok, file} = File.open("./test/fixtures/buffer_capture.dump", [:read])
-    buffer = :erlang.binary_to_term(IO.binread(file, :all))
+    {:ok, file} = File.open("./test/results/input_vp8.dump", [:read])
+    frames = :erlang.binary_to_term(IO.binread(file, :all))
 
-    IO.inspect(buffer.payload)
-    IO.inspect(FrameHeader.parse(buffer.payload))
+    {:ok, payloader_state} = Payloader.handle_init(%Payloader{fragmentation_method: :advanced})
 
-    # {:ok, payloader_state} = Payloader.handle_init(%Payloader{fragmentation_method: :advanced})
+    # assert {{:ok, _actions}, _state} = Payloader.handle_process(:input, keyframe, nil, payloader_state)
+    # IO.inspect(interframe)
+    # assert {{:ok, _actions}, _state} = Payloader.handle_process(:input, keyframe, nil, payloader_state)
+    frames |> Enum.each(&(assert {{:ok, _actions}, _state} = Payloader.handle_process(:input, &1, nil, payloader_state)))
 
-    # Payloader.handle_process(:input, buffer, nil, payloader_state)
   end
 end

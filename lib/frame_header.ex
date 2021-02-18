@@ -8,6 +8,81 @@ defmodule Membrane.RTP.VP8.FrameHeader do
     * is keyframe
     * frame width and height
     * amount of data partitions and their offsets (required for advanced packetization)
+
+    Frame tag (24 bit):
+    +-+-+-+-+---+-+-------------+-------------+
+    |size0|s|ver|f|    size1    |    size2    | : s - show frame, ver - version, f - keyframe(0 -> KEYFRAME, 1 -> INTERFRAME)
+    +-----+-+---+-+-------------+-------------+
+
+    if (keyframe):
+      start sequence (24 bit):
+      +-------------+-------------+-------------+
+      |    0x9d     |    0x01     |     0x2a    |
+      +-------------+-------------+-------------+
+      diemnsions(2x 16 bit):
+      +-------------+-------------+-------------+-------------+
+      |           width           |           height          |
+      +-------------+-------------+-------------+-------------+
+      colour space(1 bit) and clamping type(1 bit):
+      +-+-+
+      |s|t|
+      +-+-+
+
+    +-+
+    |e| : e - segmentation_enabled (1 bit)
+    +-+
+
+    if (segmentation_enabled)
+      update_mb_segmentation_map (1 bit) and update_segment_feature_data (1 bit)
+      +-+-+
+      |m|d| : m - update_mb_segmentation_map, d - update_segment_feature_data
+      +-+-+
+
+      if (update_segment_feature_data)
+        +-+
+        |m| : m - segment_feature_mode (1 bit)
+        +-+
+        +-+             +-------------+-+                                                \
+        |f| if (f == 1) |  quantizer  |s| : f - flag (1 bit), quantizer and sign (7 bit)  | 4x
+        +-+             +-------------+-+                                                /
+
+        +-+             +-----------+-+                                                  \
+        |f| if (f == 1) | lf update |s| : f - flag (1 bit), quantizer and sign (6 bit)    | 4x
+        +-+             +-----------+-+                                                  /
+
+      if (update_mb_segmentation_map)
+        +-+             +----------------+                                               \
+        |f| if (f == 1) |  segment_probe | : f - flag (1 bit), segment probe - (8 bit)    | 3x
+        +-+             +----------------+                                               /
+
+    +------------------------------------------+
+    |filter type, loop filter, sharpness level | - 10 bit
+    +------------------------------------------+
+
+    +-+
+    |e| : e - loop_filter_adj_enabled (1 bit)
+    +-+
+
+    if (loop_filter_adj_enabled)
+      +-+
+      |m| : m - mode_ref_lf_data_update (1 bit)
+      +-+
+      if (mode_ref_lf_data_update)
+        +-+             +-----------+-+                                     \
+        |f| if (f == 1) | magnitude |s| : magnitude (6 bit) s - sign (1 bit) | 8x
+        +-+             +-----------+-+                                     /
+
+    +--+
+    |lg| : lg - log2(coefficient partitions count) (2bit)
+    +--+
+
+                            .
+                            .  rest of first partition (size of first partition can be calculated form size0 size1 size2)
+                            .
+
+    +------------------------+            \
+    |    partition size      | : (24 bit)  |  (coefficient partitions count - 1)x
+    +------------------------+            /
   """
 
   @type t :: %__MODULE__{
@@ -27,8 +102,8 @@ defmodule Membrane.RTP.VP8.FrameHeader do
          {:ok, rest} <- skip_segmentation_data(rest),
          {:ok, rest} <- skip_filter_config(rest),
          {:ok, rest} <- skip_loop_filter_adj(rest),
-         {:ok, {header_acc, rest}} <- decode_partitions_count(rest, header_acc),
-         {:ok, {header_acc, _rest}} <- decode_partitions_sizes(rest, header_acc) do
+         {:ok, {header_acc, _rest}} <- decode_partitions_count(rest, header_acc),
+         {:ok, {header_acc, _rest}} <- decode_partitions_sizes(frame, header_acc) do
       {:ok, header_acc}
     end
   end
@@ -52,7 +127,7 @@ defmodule Membrane.RTP.VP8.FrameHeader do
         rest::bitstring()>> ->
         {:ok, {%{header_acc | width: width, height: height}, rest}}
 
-      _ ->
+      _error ->
         {:errro, :unparsable_data}
     end
   end
@@ -75,7 +150,7 @@ defmodule Membrane.RTP.VP8.FrameHeader do
                   <<_quantizer_and_sign::8, rest::bitstring()>> = rest
                   rest
 
-                _ ->
+                0 ->
                   rest
               end
             end)
@@ -87,12 +162,12 @@ defmodule Membrane.RTP.VP8.FrameHeader do
                 <<_update_and_sign::7, rest::bitstring()>> = rest
                 rest
 
-              _ ->
+              0 ->
                 rest
             end
           end)
 
-        _ ->
+        0 ->
           rest
       end
 
@@ -106,12 +181,12 @@ defmodule Membrane.RTP.VP8.FrameHeader do
                 <<_segment_probe::8, rest::bitstring()>> = rest
                 rest
 
-              _ ->
+              0 ->
                 rest
             end
           end)
 
-        _ ->
+        0 ->
           rest
       end
 
@@ -138,12 +213,12 @@ defmodule Membrane.RTP.VP8.FrameHeader do
                 <<_magnitude_and_sign::7, rest::bitstring()>> = rest
                 rest
 
-              _ ->
+              0 ->
                 rest
             end
           end)
 
-        _ ->
+        0 ->
           rest
       end
 
@@ -151,15 +226,25 @@ defmodule Membrane.RTP.VP8.FrameHeader do
   end
 
   defp decode_partitions_count(data, header_acc) do
-    <<count::2, rest::bitstring()>> = data
+    <<log2count::2, rest::bitstring()>> = data
+    count = :math.pow(2, log2count) |> floor()
 
-    {:ok, {%{header_acc | coefficient_partitions_count: floor(:math.pow(2, count))}, rest}}
+    # First coefficient partition begins after partitions sizes data that are right
+    # after the first partition. For convenience we calculate partitons sizes as part of
+    # first partition.
+    {:ok,
+     {
+       %{
+         header_acc
+         | coefficient_partitions_count: count
+       },
+       rest
+     }}
   end
 
   defp decode_partitions_sizes(data, header_acc) do
     [first_partition_size] = header_acc.sizes
-    bit_size = 8 * first_partition_size
-    <<_first_partition::size(bit_size), data::bitstring()>> = data
+    <<_first_partition::binary-size(first_partition_size), data::bitstring()>> = data
 
     {sizes, rest} =
       if header_acc.coefficient_partitions_count > 1 do
@@ -172,6 +257,9 @@ defmodule Membrane.RTP.VP8.FrameHeader do
         {[], data}
       end
 
-    {:ok, {%{header_acc | sizes: header_acc.sizes ++ sizes}, rest}}
+    first_partition_size =
+      first_partition_size + 3 * (header_acc.coefficient_partitions_count - 1)
+
+    {:ok, {%{header_acc | sizes: [first_partition_size] ++ sizes}, rest}}
   end
 end
