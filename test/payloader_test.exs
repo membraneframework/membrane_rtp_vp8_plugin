@@ -115,7 +115,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
     input2 = <<0>>
 
     partition0 =
-      <<144, 2, 0, 157, 1, 42, 10, 0, 10, 0, 21, 82, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 0, 5,
+      <<80, 1, 0, 157, 1, 42, 10, 0, 10, 0, 21, 82, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 0, 5,
         0, 0>>
 
     partition1 = <<5, 5, 5, 5, 5>>
@@ -143,7 +143,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                           n: 0,
                           s: 1,
                           partition_index: 0
-                        }) <> <<144, 2, 0, 157, 1>>
+                        }) <> <<80, 1, 0, 157, 1>>
                     },
                     %Buffer{
                       metadata: %{rtp: %{marker: false}},
@@ -244,14 +244,15 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
 
   test "advanced payloading test or real VP8 frame" do
     {:ok, file} = File.open("./test/results/input_vp8.dump", [:read])
-    frames = :erlang.binary_to_term(IO.binread(file, :all))
+    [frame1, frame2, frame3 | _rest] = :erlang.binary_to_term(IO.binread(file, :all))
 
     {:ok, payloader_state} = Payloader.handle_init(%Payloader{fragmentation_method: :advanced})
 
-    # assert {{:ok, _actions}, _state} = Payloader.handle_process(:input, keyframe, nil, payloader_state)
+    assert {{:ok, _actions}, _state} =
+             Payloader.handle_process(:input, frame3, nil, payloader_state)
+
     # IO.inspect(interframe)
     # assert {{:ok, _actions}, _state} = Payloader.handle_process(:input, keyframe, nil, payloader_state)
-    frames |> Enum.each(&(assert {{:ok, _actions}, _state} = Payloader.handle_process(:input, &1, nil, payloader_state)))
-
+    # frames |> Enum.each(&(assert {{:ok, _actions}, _state} = Payloader.handle_process(:input, &1, nil, payloader_state)))
   end
 end

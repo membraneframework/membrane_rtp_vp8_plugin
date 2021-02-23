@@ -15,11 +15,12 @@ defmodule Membrane.RTP.VP8.CaptureBuffer do
         children: [
           file_source: %Membrane.File.Source{
             location:
-              "/Users/andrzej/Membrane/membrane_rtp_vp8_plugin/test/fixtures/input_vp8.ivf"
+              "./test/fixtures/crashing_vp8.ivf"
           },
           deserializer: IVF.Deserializer,
           capture_maker: %CaptureMaker{
-            location: "/Users/andrzej/Membrane/membrane_rtp_vp8_plugin/test/results/input_vp8.dump"
+            location:
+              "./test/results/input_vp8.dump"
           }
         ],
         links: [

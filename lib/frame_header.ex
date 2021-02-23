@@ -43,16 +43,16 @@ defmodule Membrane.RTP.VP8.FrameHeader do
         |m| : m - segment_feature_mode (1 bit)
         +-+
         +-+             +-------------+-+                                                \
-        |f| if (f == 1) |  quantizer  |s| : f - flag (1 bit), quantizer and sign (7 bit)  | 4x
+        |f| if (f == 1) |  quantizer  |s| : f - flag (1 bit), quantizer and sign (7 bit)  |- 4x
         +-+             +-------------+-+                                                /
 
         +-+             +-----------+-+                                                  \
-        |f| if (f == 1) | lf update |s| : f - flag (1 bit), quantizer and sign (6 bit)    | 4x
+        |f| if (f == 1) | lf update |s| : f - flag (1 bit), quantizer and sign (6 bit)    |- 4x
         +-+             +-----------+-+                                                  /
 
       if (update_mb_segmentation_map)
         +-+             +----------------+                                               \
-        |f| if (f == 1) |  segment_probe | : f - flag (1 bit), segment probe - (8 bit)    | 3x
+        |f| if (f == 1) |  segment_probe | : f - flag (1 bit), segment probe - (8 bit)    |- 3x
         +-+             +----------------+                                               /
 
     +------------------------------------------+
@@ -69,7 +69,7 @@ defmodule Membrane.RTP.VP8.FrameHeader do
       +-+
       if (mode_ref_lf_data_update)
         +-+             +-----------+-+                                     \
-        |f| if (f == 1) | magnitude |s| : magnitude (6 bit) s - sign (1 bit) | 8x
+        |f| if (f == 1) | magnitude |s| : magnitude (6 bit) s - sign (1 bit) |- 8x
         +-+             +-----------+-+                                     /
 
     +--+
@@ -81,7 +81,7 @@ defmodule Membrane.RTP.VP8.FrameHeader do
                             .
 
     +------------------------+            \
-    |    partition size      | : (24 bit)  |  (coefficient partitions count - 1)x
+    |    partition size      | : (24 bit)  |- (coefficient partitions count - 1)x
     +------------------------+            /
   """
 
@@ -103,6 +103,10 @@ defmodule Membrane.RTP.VP8.FrameHeader do
          {:ok, rest} <- skip_filter_config(rest),
          {:ok, rest} <- skip_loop_filter_adj(rest),
          {:ok, {header_acc, _rest}} <- decode_partitions_count(rest, header_acc),
+        #  {:ok, rest} <- skip_quant_indices(rest),
+        #  {:ok, rest} <- skip_refresh_data(rest, header_acc),
+        #  {:ok, rest} <- skip_token_prob_update(rest),
+        #  {:ok, rest} <- skip_coeff_data(rest, header_acc),
          {:ok, {header_acc, _rest}} <- decode_partitions_sizes(frame, header_acc) do
       {:ok, header_acc}
     end
@@ -112,7 +116,9 @@ defmodule Membrane.RTP.VP8.FrameHeader do
     <<size_0::3, _showframe_and_version::4, keyframe::1, size_1, size_2>> = frame_tag
     <<size::19>> = <<size_2, size_1, size_0::3>>
 
-    {:ok, {%{header_acc | sizes: header_acc.sizes ++ [size], is_keyframe: keyframe == 0}, rest}}
+    size = if keyframe == 0, do: size + 10, else: size + 3
+
+    {:ok, {%{header_acc | sizes: [size], is_keyframe: keyframe == 0}, rest}}
   end
 
   defp decode_frame_tag(_frame, _acc), do: {:error, :unparsable_data}
@@ -229,9 +235,6 @@ defmodule Membrane.RTP.VP8.FrameHeader do
     <<log2count::2, rest::bitstring()>> = data
     count = :math.pow(2, log2count) |> floor()
 
-    # First coefficient partition begins after partitions sizes data that are right
-    # after the first partition. For convenience we calculate partitons sizes as part of
-    # first partition.
     {:ok,
      {
        %{
@@ -242,15 +245,176 @@ defmodule Membrane.RTP.VP8.FrameHeader do
      }}
   end
 
+  defp skip_quant_indices(data) do
+    <<_y_ac_qi::7, y_dc_delta_present::1, rest::bitstring()>> = data
+
+    rest =
+      if y_dc_delta_present == 1 do
+        <<_magnitude_sign::5, rest::bitstring()>> = rest
+        rest
+      else
+        rest
+      end
+
+    <<y2_dc_delta_present::1, rest::bitstring()>> = rest
+
+    rest =
+      if y2_dc_delta_present == 1 do
+        <<_magnitude_sign::5, rest::bitstring()>> = rest
+        rest
+      else
+        rest
+      end
+
+    <<y2_ac_delta_present::1, rest::bitstring()>> = rest
+
+    rest =
+      if y2_ac_delta_present == 1 do
+        <<_magnitude_sign::5, rest::bitstring()>> = rest
+        rest
+      else
+        rest
+      end
+
+    <<uv_dc_delta_present::1, rest::bitstring()>> = rest
+
+    rest =
+      if uv_dc_delta_present == 1 do
+        <<_magnitude_sign::5, rest::bitstring()>> = rest
+        rest
+      else
+        rest
+      end
+
+    <<uv_ac_delta_present::1, rest::bitstring()>> = rest
+
+    if uv_ac_delta_present == 1 do
+      <<_magnitude_sign::5, rest::bitstring()>> = rest
+      {:ok, rest}
+    else
+      {:ok, rest}
+    end
+  end
+
+  defp skip_refresh_data(data, %__MODULE__{is_keyframe: true}) do
+    <<_refresh_entropy_probs::1, rest::bitstring()>> = data
+
+    {:ok, rest}
+  end
+
+  defp skip_refresh_data(data, %__MODULE__{is_keyframe: false}) do
+    <<refresh_golden_frame::1, refresh_alternate_frame::1, rest::bitstring()>> = data
+
+    rest =
+      if refresh_golden_frame == 0 do
+        <<_copy_buffer_to_golden::2, rest::bitstring()>> = rest
+        rest
+      else
+        rest
+      end
+
+    rest =
+      if refresh_alternate_frame == 0 do
+        <<_copy_buffer_to_alternate::2, rest::bitstring()>> = rest
+        rest
+      else
+        rest
+      end
+
+    # sign_bias_golden, sign_bias_alternate, refresh_entropy_probs, refresh_last
+    <<_other_flags::4, rest::bitstring>> = rest
+
+    {:ok, rest}
+  end
+
+  defp skip_token_prob_update(data) do
+    rest =
+      1..1056
+      |> Enum.reduce(data, fn _i, <<coeff_prob_update_flag::1, rest::bitstring()>> ->
+        case coeff_prob_update_flag do
+          1 ->
+            <<_coeff_prob::8, rest::bitstring()>> = rest
+            rest
+
+          0 ->
+            rest
+        end
+      end)
+
+    {:ok, rest}
+  end
+
+  defp skip_coeff_data(data, header_acc) do
+    <<mb_no_skip_coeff::1, rest::bitstring>> = data
+
+    rest =
+      if mb_no_skip_coeff == 1 do
+        <<_prob_skip_false::8, rest::bitstring()>> = rest
+        rest
+      else
+        rest
+      end
+
+    rest =
+      if not header_acc.is_keyframe do
+        <<_prob_intra, _prob_last, _prob_gf, intra_16x16_prob_update_flag::1, rest::bitstring()>> =
+          rest
+
+        rest =
+          if intra_16x16_prob_update_flag == 1 do
+            <<_intra_16x16_probs::32, rest::bitstring()>> = rest
+            rest
+          else
+            rest
+          end
+
+        <<intra_chroma_prob_update_flag::1, rest::bitstring()>> = rest
+
+        rest =
+          if intra_chroma_prob_update_flag == 1 do
+            <<_intra_chroma_probs::24, rest::bitstring()>> = rest
+            rest
+          else
+            rest
+          end
+
+        {:ok, rest} = skip_mv_prob_update(rest)
+
+        rest
+      end
+
+    {:ok, rest}
+  end
+
+  defp skip_mv_prob_update(data) do
+    rest =
+      1..38
+      |> Enum.reduce(data, fn _i, <<mv_prob_update_flag::1, rest::bitstring()>> ->
+        case mv_prob_update_flag do
+          1 ->
+            <<_prob::7, rest::bitstring()>> = rest
+            rest
+
+          0 ->
+            rest
+        end
+      end)
+
+    {:ok, rest}
+  end
+
   defp decode_partitions_sizes(data, header_acc) do
     [first_partition_size] = header_acc.sizes
+
+    IO.inspect(first_partition_size, label: "###")
+
     <<_first_partition::binary-size(first_partition_size), data::bitstring()>> = data
 
     {sizes, rest} =
       if header_acc.coefficient_partitions_count > 1 do
         1..(header_acc.coefficient_partitions_count - 1)
         |> Enum.map_reduce(data, fn _i, acc ->
-          <<size::24-little, rest::bitstring()>> = acc
+          <<size::little-24, rest::bitstring()>> = acc
           {size, rest}
         end)
       else
