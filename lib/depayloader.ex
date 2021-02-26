@@ -95,4 +95,3 @@ defmodule Membrane.RTP.VP8.Depayloader do
     """)
   end
 end
-

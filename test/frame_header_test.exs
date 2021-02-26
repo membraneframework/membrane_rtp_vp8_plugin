@@ -12,8 +12,8 @@ defmodule Membrane.RTP.VP8.FrameHeaderTest do
     """
     test "example keyframe with 4 coefficient partitions" do
       example_frame =
-        <<80, 1, 0, 157, 1, 42, 10, 0, 10, 0, 21, 82, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 0,
-          5, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5>>
+        <<80, 1, 0, 157, 1, 42, 10, 0, 10, 0, 21, 82, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 0, 5,
+          0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5>>
 
       expected_frame_header = %FrameHeader{
         is_keyframe: true,

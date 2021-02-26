@@ -243,16 +243,20 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
   end
 
   test "advanced payloading test or real VP8 frame" do
-    {:ok, file} = File.open("./test/results/input_vp8.dump", [:read])
-    [frame1, frame2, frame3 | _rest] = :erlang.binary_to_term(IO.binread(file, :all))
+    {:ok, file} = File.open("./test/results/crashing_vp8.dump", [:read])
+    frames = :erlang.binary_to_term(IO.binread(file, :all))
+
+    [frame1, frame2, frame3, frame4, frame5, frame6, frame7, frame8 | rest] = frames
 
     {:ok, payloader_state} = Payloader.handle_init(%Payloader{fragmentation_method: :advanced})
 
     assert {{:ok, _actions}, _state} =
-             Payloader.handle_process(:input, frame3, nil, payloader_state)
+             Payloader.handle_process(:input, frame8, nil, payloader_state)
 
-    # IO.inspect(interframe)
-    # assert {{:ok, _actions}, _state} = Payloader.handle_process(:input, keyframe, nil, payloader_state)
-    # frames |> Enum.each(&(assert {{:ok, _actions}, _state} = Payloader.handle_process(:input, &1, nil, payloader_state)))
+    frames
+    |> Enum.each(
+      &assert {{:ok, _actions}, _state} =
+                Payloader.handle_process(:input, &1, nil, payloader_state)
+    )
   end
 end

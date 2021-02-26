@@ -14,13 +14,11 @@ defmodule Membrane.RTP.VP8.CaptureBuffer do
       spec = %ParentSpec{
         children: [
           file_source: %Membrane.File.Source{
-            location:
-              "./test/fixtures/crashing_vp8.ivf"
+            location: "./test/fixtures/crashing_vp8.ivf"
           },
           deserializer: IVF.Deserializer,
           capture_maker: %CaptureMaker{
-            location:
-              "./test/results/input_vp8.dump"
+            location: "./test/results/crashing_vp8.dump"
           }
         ],
         links: [

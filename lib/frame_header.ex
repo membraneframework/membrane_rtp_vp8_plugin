@@ -85,6 +85,8 @@ defmodule Membrane.RTP.VP8.FrameHeader do
     +------------------------+            /
   """
 
+  alias Membrane.RTP.VP8.BooleanDecoder
+
   @type t :: %__MODULE__{
           is_keyframe: boolean(),
           coefficient_partitions_count: non_neg_integer(),
@@ -99,14 +101,13 @@ defmodule Membrane.RTP.VP8.FrameHeader do
   def parse(frame) do
     with {:ok, {header_acc, rest}} <- decode_frame_tag(frame, %__MODULE__{}),
          {:ok, {header_acc, rest}} <- decode_width_height(rest, header_acc),
-         {:ok, rest} <- skip_segmentation_data(rest),
-         {:ok, rest} <- skip_filter_config(rest),
-         {:ok, rest} <- skip_loop_filter_adj(rest),
-         {:ok, {header_acc, _rest}} <- decode_partitions_count(rest, header_acc),
-        #  {:ok, rest} <- skip_quant_indices(rest),
-        #  {:ok, rest} <- skip_refresh_data(rest, header_acc),
-        #  {:ok, rest} <- skip_token_prob_update(rest),
-        #  {:ok, rest} <- skip_coeff_data(rest, header_acc),
+         <<header::binary-size(92), _rest::bitstring()>> <- rest,
+         {:ok, decoder_state} <- BooleanDecoder.init_bool_decoder(header),
+         {:ok, decoder_state} <- skip_colour_space_and_clamping_type(decoder_state),
+         {:ok, decoder_state} <- skip_segmentation_data(decoder_state),
+         {:ok, decoder_state} <- skip_filter_config(decoder_state),
+         {:ok, decoder_state} <- skip_loop_filter_adj(decoder_state),
+         {:ok, header_acc} <- decode_partitions_count(decoder_state, header_acc),
          {:ok, {header_acc, _rest}} <- decode_partitions_sizes(frame, header_acc) do
       {:ok, header_acc}
     end
@@ -123,14 +124,14 @@ defmodule Membrane.RTP.VP8.FrameHeader do
 
   defp decode_frame_tag(_frame, _acc), do: {:error, :unparsable_data}
 
-  defp decode_width_height(frame, %__MODULE__{is_keyframe: false} = header_acc),
-    do: {:ok, {header_acc, frame}}
+  defp decode_width_height(frame, %__MODULE__{is_keyframe: false} = header_acc) do
+    {:ok, {header_acc, frame}}
+  end
 
   defp decode_width_height(frame, %__MODULE__{is_keyframe: true} = header_acc) do
     case frame do
       # start sequence is 0x9d, 0x01, 0x2a
-      <<157, 1, 42, width::16-little, height::16-little, _colour_space::1, _clamping_type::1,
-        rest::bitstring()>> ->
+      <<157, 1, 42, width::16-little, height::16-little, rest::binary()>> ->
         {:ok, {%{header_acc | width: width, height: height}, rest}}
 
       _error ->
@@ -138,275 +139,143 @@ defmodule Membrane.RTP.VP8.FrameHeader do
     end
   end
 
-  defp skip_segmentation_data(<<0::1, rest::bitstring()>>), do: {:ok, rest}
+  defp skip_colour_space_and_clamping_type(bool_decoder) do
+    {:ok, {_colour_space, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
+    {:ok, {_clamping_type, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
 
-  defp skip_segmentation_data(<<1::1, data::bitstring()>>) do
-    <<updata_mb_segmentation_map::1, update_segment_feature_data::1, rest::bitstring()>> = data
-
-    rest =
-      case update_segment_feature_data do
-        1 ->
-          <<_segment_feature_mode::1, rest::bitstring()>> = rest
-
-          rest =
-            1..4
-            |> Enum.reduce(rest, fn _i, <<flag::1, rest::bitstring()>> ->
-              case flag do
-                1 ->
-                  <<_quantizer_and_sign::8, rest::bitstring()>> = rest
-                  rest
-
-                0 ->
-                  rest
-              end
-            end)
-
-          1..4
-          |> Enum.reduce(rest, fn _i, <<flag::1, rest::bitstring()>> ->
-            case flag do
-              1 ->
-                <<_update_and_sign::7, rest::bitstring()>> = rest
-                rest
-
-              0 ->
-                rest
-            end
-          end)
-
-        0 ->
-          rest
-      end
-
-    rest =
-      case updata_mb_segmentation_map do
-        1 ->
-          1..3
-          |> Enum.reduce(rest, fn _i, <<flag::1, rest::bitstring()>> ->
-            case flag do
-              1 ->
-                <<_segment_probe::8, rest::bitstring()>> = rest
-                rest
-
-              0 ->
-                rest
-            end
-          end)
-
-        0 ->
-          rest
-      end
-
-    {:ok, rest}
+    {:ok, bool_decoder}
   end
 
-  defp skip_filter_config(data) do
-    <<_filter_config::10, rest::bitstring()>> = data
-    {:ok, rest}
-  end
+  defp skip_segmentation_data(bool_decoder) do
+    {:ok, {flag, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
 
-  defp skip_loop_filter_adj(<<0::1, rest::bitstring()>>), do: {:ok, rest}
+    case flag do
+      1 ->
+        {:ok, {updata_mb_segmentation_map, bool_decoder}} =
+          BooleanDecoder.read_bool(128, bool_decoder)
 
-  defp skip_loop_filter_adj(<<1::1, data::bitstring()>>) do
-    <<ref_lf_data_update::1, rest::bitstring()>> = data
+        {:ok, {update_segment_feature_data, bool_decoder}} =
+          BooleanDecoder.read_bool(128, bool_decoder)
 
-    rest =
-      case ref_lf_data_update do
-        1 ->
-          1..8
-          |> Enum.reduce(rest, fn _i, <<flag::1, rest::bitstring()>> ->
-            case flag do
-              1 ->
-                <<_magnitude_and_sign::7, rest::bitstring()>> = rest
-                rest
+        bool_decoder = skip_segment_feature_data(update_segment_feature_data, bool_decoder)
+        bool_decoder = skip_update_mb_segmentation_map(updata_mb_segmentation_map, bool_decoder)
+        {:ok, bool_decoder}
 
-              0 ->
-                rest
-            end
-          end)
-
-        0 ->
-          rest
-      end
-
-    {:ok, rest}
-  end
-
-  defp decode_partitions_count(data, header_acc) do
-    <<log2count::2, rest::bitstring()>> = data
-    count = :math.pow(2, log2count) |> floor()
-
-    {:ok,
-     {
-       %{
-         header_acc
-         | coefficient_partitions_count: count
-       },
-       rest
-     }}
-  end
-
-  defp skip_quant_indices(data) do
-    <<_y_ac_qi::7, y_dc_delta_present::1, rest::bitstring()>> = data
-
-    rest =
-      if y_dc_delta_present == 1 do
-        <<_magnitude_sign::5, rest::bitstring()>> = rest
-        rest
-      else
-        rest
-      end
-
-    <<y2_dc_delta_present::1, rest::bitstring()>> = rest
-
-    rest =
-      if y2_dc_delta_present == 1 do
-        <<_magnitude_sign::5, rest::bitstring()>> = rest
-        rest
-      else
-        rest
-      end
-
-    <<y2_ac_delta_present::1, rest::bitstring()>> = rest
-
-    rest =
-      if y2_ac_delta_present == 1 do
-        <<_magnitude_sign::5, rest::bitstring()>> = rest
-        rest
-      else
-        rest
-      end
-
-    <<uv_dc_delta_present::1, rest::bitstring()>> = rest
-
-    rest =
-      if uv_dc_delta_present == 1 do
-        <<_magnitude_sign::5, rest::bitstring()>> = rest
-        rest
-      else
-        rest
-      end
-
-    <<uv_ac_delta_present::1, rest::bitstring()>> = rest
-
-    if uv_ac_delta_present == 1 do
-      <<_magnitude_sign::5, rest::bitstring()>> = rest
-      {:ok, rest}
-    else
-      {:ok, rest}
+      0 ->
+        {:ok, bool_decoder}
     end
   end
 
-  defp skip_refresh_data(data, %__MODULE__{is_keyframe: true}) do
-    <<_refresh_entropy_probs::1, rest::bitstring()>> = data
+  defp skip_segment_feature_data(0, bool_decoder), do: bool_decoder
 
-    {:ok, rest}
-  end
+  defp skip_segment_feature_data(1, bool_decoder) do
+    {:ok, {_segment_feature_mode, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
 
-  defp skip_refresh_data(data, %__MODULE__{is_keyframe: false}) do
-    <<refresh_golden_frame::1, refresh_alternate_frame::1, rest::bitstring()>> = data
+    bool_decoder =
+      1..4
+      |> Enum.reduce(bool_decoder, fn _i, bool_decoder ->
+        {:ok, {flag, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
 
-    rest =
-      if refresh_golden_frame == 0 do
-        <<_copy_buffer_to_golden::2, rest::bitstring()>> = rest
-        rest
-      else
-        rest
-      end
-
-    rest =
-      if refresh_alternate_frame == 0 do
-        <<_copy_buffer_to_alternate::2, rest::bitstring()>> = rest
-        rest
-      else
-        rest
-      end
-
-    # sign_bias_golden, sign_bias_alternate, refresh_entropy_probs, refresh_last
-    <<_other_flags::4, rest::bitstring>> = rest
-
-    {:ok, rest}
-  end
-
-  defp skip_token_prob_update(data) do
-    rest =
-      1..1056
-      |> Enum.reduce(data, fn _i, <<coeff_prob_update_flag::1, rest::bitstring()>> ->
-        case coeff_prob_update_flag do
+        case flag do
           1 ->
-            <<_coeff_prob::8, rest::bitstring()>> = rest
-            rest
+            {:ok, {_v, bool_decoder}} = BooleanDecoder.read_literal(8, bool_decoder)
+            bool_decoder
 
           0 ->
-            rest
+            bool_decoder
         end
       end)
 
-    {:ok, rest}
+    1..4
+    |> Enum.reduce(bool_decoder, fn _i, bool_decoder ->
+      {:ok, {flag, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
+
+      case flag do
+        1 ->
+          {:ok, {_v, bool_decoder}} = BooleanDecoder.read_literal(7, bool_decoder)
+          bool_decoder
+
+        0 ->
+          bool_decoder
+      end
+    end)
   end
 
-  defp skip_coeff_data(data, header_acc) do
-    <<mb_no_skip_coeff::1, rest::bitstring>> = data
+  defp skip_update_mb_segmentation_map(0, bool_decoder), do: bool_decoder
 
-    rest =
-      if mb_no_skip_coeff == 1 do
-        <<_prob_skip_false::8, rest::bitstring()>> = rest
-        rest
-      else
-        rest
+  defp skip_update_mb_segmentation_map(1, bool_decoder) do
+    1..3
+    |> Enum.reduce(bool_decoder, fn _i, bool_decoder ->
+      {:ok, {flag, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
+
+      case flag do
+        1 ->
+          {:ok, {_v, bool_decoder}} = BooleanDecoder.read_literal(8, bool_decoder)
+          bool_decoder
+
+        0 ->
+          bool_decoder
       end
-
-    rest =
-      if not header_acc.is_keyframe do
-        <<_prob_intra, _prob_last, _prob_gf, intra_16x16_prob_update_flag::1, rest::bitstring()>> =
-          rest
-
-        rest =
-          if intra_16x16_prob_update_flag == 1 do
-            <<_intra_16x16_probs::32, rest::bitstring()>> = rest
-            rest
-          else
-            rest
-          end
-
-        <<intra_chroma_prob_update_flag::1, rest::bitstring()>> = rest
-
-        rest =
-          if intra_chroma_prob_update_flag == 1 do
-            <<_intra_chroma_probs::24, rest::bitstring()>> = rest
-            rest
-          else
-            rest
-          end
-
-        {:ok, rest} = skip_mv_prob_update(rest)
-
-        rest
-      end
-
-    {:ok, rest}
+    end)
   end
 
-  defp skip_mv_prob_update(data) do
-    rest =
-      1..38
-      |> Enum.reduce(data, fn _i, <<mv_prob_update_flag::1, rest::bitstring()>> ->
-        case mv_prob_update_flag do
-          1 ->
-            <<_prob::7, rest::bitstring()>> = rest
-            rest
+  defp skip_filter_config(bool_decoder) do
+    {:ok, {_v, bool_decoder}} = BooleanDecoder.read_literal(1, bool_decoder)
+    {:ok, {_v, bool_decoder}} = BooleanDecoder.read_literal(6, bool_decoder)
+    {:ok, {_v, bool_decoder}} = BooleanDecoder.read_literal(3, bool_decoder)
+    {:ok, bool_decoder}
+  end
 
-          0 ->
-            rest
-        end
-      end)
+  defp skip_loop_filter_adj(bool_decoder) do
+    {:ok, {loop_filter_adj_enabled, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
 
-    {:ok, rest}
+    bool_decoder = skip_lf_delta_update(loop_filter_adj_enabled, bool_decoder)
+
+    {:ok, bool_decoder}
+  end
+
+  defp skip_lf_delta_update(0, bool_decoder), do: bool_decoder
+
+  defp skip_lf_delta_update(1, bool_decoder) do
+    {:ok, {ref_lf_data_update, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
+
+    case ref_lf_data_update do
+      1 ->
+        1..8
+        |> Enum.reduce(bool_decoder, fn _i, bool_decoder ->
+          {:ok, {flag, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
+
+          case flag do
+            1 ->
+              {:ok, {_v, bool_decoder}} = BooleanDecoder.read_literal(7, bool_decoder)
+              bool_decoder
+
+            0 ->
+              bool_decoder
+          end
+        end)
+
+      0 ->
+        bool_decoder
+    end
+  end
+
+  defp decode_partitions_count(bool_decoder, header_acc) do
+    {:ok, {log2count, _bool_decoder}} = BooleanDecoder.read_literal(2, bool_decoder)
+    count = :math.pow(2, log2count) |> floor()
+
+    {:ok,
+     %{
+       header_acc
+       | coefficient_partitions_count: count
+     }}
   end
 
   defp decode_partitions_sizes(data, header_acc) do
     [first_partition_size] = header_acc.sizes
 
-    IO.inspect(first_partition_size, label: "###")
+    IO.inspect(byte_size(data))
+    IO.inspect(first_partition_size)
 
     <<_first_partition::binary-size(first_partition_size), data::bitstring()>> = data
 
