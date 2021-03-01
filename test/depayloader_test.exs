@@ -49,7 +49,7 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
                  {:output,
                   %Buffer{
                     payload: <<170, 171, 172, 173>>,
-                    metadata: %{rtp: %{sequence_number: 14_451, timestamp: 30}}
+                    metadata: %{rtp: %{sequence_number: 14_450, timestamp: 30}}
                   }},
                end_of_stream: :output
              ]}, %State{}} == Depayloader.handle_end_of_stream(:input, nil, depayloader_state)

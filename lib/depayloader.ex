@@ -22,9 +22,9 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
     @type t :: %__MODULE__{
             frame_acc: Frame.t(),
-            last_buffer_metadata: %{}
+            first_buffer_metadata: nil | %{}
           }
-    defstruct frame_acc: %Frame{}, last_buffer_metadata: %{}
+    defstruct frame_acc: %Frame{}, first_buffer_metadata: nil
   end
 
   @impl true
@@ -46,9 +46,10 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
   @impl true
   def handle_process(:input, buffer, _ctx, state) do
+    state = %{state | first_buffer_metadata: state.first_buffer_metadata || buffer.metadata}
+
     with {{:ok, actions}, new_state} <- parse_buffer(buffer, state) do
-      {{:ok, actions ++ [redemand: :output]},
-       %{new_state | last_buffer_metadata: buffer.metadata}}
+      {{:ok, actions ++ [redemand: :output]}, new_state}
     else
       {:error, reason} ->
         log_malformed_buffer(buffer, reason)
@@ -62,20 +63,20 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
     {{:ok,
       [
-        buffer: {:output, %Buffer{metadata: state.last_buffer_metadata, payload: frame}},
+        buffer: {:output, %Buffer{metadata: state.first_buffer_metadata, payload: frame}},
         end_of_stream: :output
       ]}, %State{}}
   end
 
   defp parse_buffer(buffer, state) do
     case Frame.parse(buffer, state.frame_acc) do
+      {:ok, :incomplete, acc} ->
+        {{:ok, []}, %State{state | frame_acc: acc}}
+
       {:ok, frame, acc} ->
         {{:ok,
-          [buffer: {:output, %{buffer | payload: frame, metadata: state.last_buffer_metadata}}]},
-         %State{state | frame_acc: acc}}
-
-      {:incomplete, acc} ->
-        {{:ok, []}, %State{state | frame_acc: acc}}
+          [buffer: {:output, %{buffer | payload: frame, metadata: state.first_buffer_metadata}}]},
+         %State{state | frame_acc: acc, first_buffer_metadata: buffer.metadata}}
 
       {:error, _} = error ->
         error
