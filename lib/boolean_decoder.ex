@@ -1,7 +1,13 @@
 defmodule Membrane.RTP.VP8.BooleanDecoder do
+  @moduledoc """
+  TODO
+  """
+
   @max_int_32 4_294_967_295
 
   defmodule State do
+    @moduledoc false
+
     @type t :: %__MODULE__{
             input: binary(),
             range: 0..4_294_967_295,
@@ -13,7 +19,6 @@ defmodule Membrane.RTP.VP8.BooleanDecoder do
 
   @spec init_bool_decoder(binary()) :: {:ok, State.t()}
   def init_bool_decoder(input) do
-    IO.inspect(input)
     <<value::16, input::binary()>> = input
 
     {:ok, %State{input: input, value: value, range: 255, bit_count: 0}}
@@ -37,7 +42,7 @@ defmodule Membrane.RTP.VP8.BooleanDecoder do
           bit_count = state.bit_count + 1
 
           {bit_count, value, input} =
-            if(bit_count == 8) do
+            if bit_count == 8 do
               <<next_byte, input::binary()>> = state.input
               {0, value + next_byte, input}
             else
@@ -50,7 +55,6 @@ defmodule Membrane.RTP.VP8.BooleanDecoder do
         end
       end)
 
-    IO.inspect(ret_val)
     {:ok, {ret_val, state}}
   end
 

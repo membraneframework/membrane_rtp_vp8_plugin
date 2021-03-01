@@ -87,6 +87,9 @@ defmodule Membrane.RTP.VP8.FrameHeader do
 
   alias Membrane.RTP.VP8.BooleanDecoder
 
+  # this is maximal size of part of header up to partitions count
+  @max_header_size 23
+
   @type t :: %__MODULE__{
           is_keyframe: boolean(),
           coefficient_partitions_count: non_neg_integer(),
@@ -99,9 +102,12 @@ defmodule Membrane.RTP.VP8.FrameHeader do
 
   @spec parse(bitstring()) :: {:ok, t()} | {:error, :unparsable_data}
   def parse(frame) do
+    header_size =
+      if byte_size(frame) > @max_header_size, do: @max_header_size, else: byte_size(frame)
+
     with {:ok, {header_acc, rest}} <- decode_frame_tag(frame, %__MODULE__{}),
          {:ok, {header_acc, rest}} <- decode_width_height(rest, header_acc),
-         <<header::binary-size(92), _rest::bitstring()>> <- rest,
+         <<header::binary-size(header_size), _rest::bitstring()>> <- rest,
          {:ok, decoder_state} <- BooleanDecoder.init_bool_decoder(header),
          {:ok, decoder_state} <- skip_colour_space_and_clamping_type(decoder_state),
          {:ok, decoder_state} <- skip_segmentation_data(decoder_state),
@@ -237,27 +243,27 @@ defmodule Membrane.RTP.VP8.FrameHeader do
   defp skip_lf_delta_update(0, bool_decoder), do: bool_decoder
 
   defp skip_lf_delta_update(1, bool_decoder) do
-    {:ok, {ref_lf_data_update, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
+    {:ok, {lf_delta_update, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
 
-    case ref_lf_data_update do
-      1 ->
-        1..8
-        |> Enum.reduce(bool_decoder, fn _i, bool_decoder ->
-          {:ok, {flag, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
+    skip_delta_update(lf_delta_update, bool_decoder)
+  end
 
-          case flag do
-            1 ->
-              {:ok, {_v, bool_decoder}} = BooleanDecoder.read_literal(7, bool_decoder)
-              bool_decoder
+  defp skip_delta_update(0, bool_decoder), do: bool_decoder
 
-            0 ->
-              bool_decoder
-          end
-        end)
+  defp skip_delta_update(1, bool_decoder) do
+    1..8
+    |> Enum.reduce(bool_decoder, fn _i, bool_decoder ->
+      {:ok, {flag, bool_decoder}} = BooleanDecoder.read_bool(128, bool_decoder)
 
-      0 ->
-        bool_decoder
-    end
+      case flag do
+        1 ->
+          {:ok, {_v, bool_decoder}} = BooleanDecoder.read_literal(7, bool_decoder)
+          bool_decoder
+
+        0 ->
+          bool_decoder
+      end
+    end)
   end
 
   defp decode_partitions_count(bool_decoder, header_acc) do
@@ -273,9 +279,6 @@ defmodule Membrane.RTP.VP8.FrameHeader do
 
   defp decode_partitions_sizes(data, header_acc) do
     [first_partition_size] = header_acc.sizes
-
-    IO.inspect(byte_size(data))
-    IO.inspect(first_partition_size)
 
     <<_first_partition::binary-size(first_partition_size), data::bitstring()>> = data
 
