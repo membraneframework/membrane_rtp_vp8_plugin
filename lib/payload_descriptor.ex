@@ -62,22 +62,24 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
               ]
 
   @spec serialize(__MODULE__.t()) :: binary()
-  def serialize(%__MODULE__{
-        x: x,
-        n: n,
-        s: s,
-        partition_index: partition_index,
-        i: i,
-        l: l,
-        t: t,
-        k: k,
-        m: m,
-        picture_id: picture_id,
-        tl0picidx: tl0picidx,
-        tid: tid,
-        y: y,
-        keyidx: keyidx
-      }) do
+  def serialize(payload_descriptor) do
+    %__MODULE__{
+      x: x,
+      n: n,
+      s: s,
+      partition_index: partition_index,
+      i: i,
+      l: l,
+      t: t,
+      k: k,
+      m: m,
+      picture_id: picture_id,
+      tl0picidx: tl0picidx,
+      tid: tid,
+      y: y,
+      keyidx: keyidx
+    } = payload_descriptor
+
     xnspid = <<x::1, 0::1, n::1, s::1, 0::1, partition_index::3>>
 
     iltk = if x == 1, do: <<i::1, l::1, t::1, k::1, 0::4>>, else: <<>>
