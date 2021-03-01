@@ -45,12 +45,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
     do: {{:ok, forward: event}, %State{state | frame_acc: nil}}
 
   @impl true
-  def handle_process(
-        :input,
-        buffer,
-        _ctx,
-        state
-      ) do
+  def handle_process(:input, buffer, _ctx, state) do
     with {{:ok, actions}, new_state} <- parse_buffer(buffer, state) do
       {{:ok, actions ++ [redemand: :output]},
        %{new_state | last_buffer_metadata: buffer.metadata}}
