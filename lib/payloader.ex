@@ -23,14 +23,14 @@ defmodule Membrane.RTP.VP8.Payloader do
                 default: :simple,
                 description: """
                 If :simple passed payloader doesn't take into account boundaries of frame partitions.
-                When :advanced is used single RTP packet carries data from one and only one partition.
+                When :advanced is used, a single RTP packet carries data from one and only one partition.
                 """
               ],
               payload_descriptor_type: [
                 spec: :simple,
                 default: :simple,
                 description: """
-                When set to :simple payloader will generate only minimal payload descriptors required for fragmentation.
+                When set to :simple payloader will generate only minimal payload descriptors required for defragmentation.
                 More complex payload descriptors are not yet supported so this option should be left as default.
                 """
               ]

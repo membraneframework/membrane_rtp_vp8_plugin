@@ -5,7 +5,7 @@ defmodule Membrane.RTP.VP8.FrameHeader do
 
   Frame header contains informations useful mostly for decoding process but there are some details
   importatnt for packetization and parsing as well. This module provides utility to extract (as for now):
-    * is keyframe
+    * keyframe flag
     * frame width and height
     * amount of data partitions and their offsets (required for advanced packetization)
 
@@ -23,10 +23,12 @@ defmodule Membrane.RTP.VP8.FrameHeader do
       +-------------+-------------+-------------+-------------+
       |           width           |           height          |
       +-------------+-------------+-------------+-------------+
-      colour space(1 bit) and clamping type(1 bit):
-      +-+-+
-      |s|t|
-      +-+-+
+
+    [### COMPRESSED PART ###]
+    colour space(1 bit) and clamping type(1 bit):
+    +-+-+
+    |s|t|
+    +-+-+
 
     +-+
     |e| : e - segmentation_enabled (1 bit)

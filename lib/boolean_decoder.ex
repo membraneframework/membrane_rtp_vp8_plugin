@@ -1,13 +1,25 @@
 defmodule Membrane.RTP.VP8.BooleanDecoder do
   @moduledoc """
-  TODO
+  This file contains implementation of boolean decoder based on RFC6386:
+  https://tools.ietf.org/html/rfc6386#section-7.3
+
+  The decoder is used during the payloading phase. Recommended method of payloading
+  requires knowledge about the amount of coefficient partitions. This detail is contained in
+  the frame header which is unfortunately in the compressed part of frame. Without
+  decoder extraction of data from compressed part is impossible.
+
+  Short note about coding in VP8 (based on RFC6386)
+  In VP8 arithmetic coding is used - it means that entire data stream is considered as the
+  binary expansion of a single number with 0 <= x < 1. The coding of each bool restricts the
+  possible values of x in proportion to the probability of what is coded.
   """
 
   @max_int_32 4_294_967_295
 
   defmodule State do
-    @moduledoc false
-
+    @moduledoc """
+    State of boolean decoder consists of input left to decode, range, value and bit count.
+    """
     @type t :: %__MODULE__{
             input: binary(),
             range: 0..4_294_967_295,

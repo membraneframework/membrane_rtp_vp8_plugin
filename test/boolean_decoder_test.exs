@@ -3,7 +3,7 @@ defmodule Membrane.RTP.VP8.BooleanDecoderTest do
 
   alias Membrane.RTP.VP8.BooleanDecoder
 
-  test "decoding prob 64/256" do
+  test "decoding with prob 128/256" do
     input = <<65, 54, 37, 13, 21>>
 
     {:ok, boolean_decoder} = BooleanDecoder.init_bool_decoder(input)
