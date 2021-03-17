@@ -43,7 +43,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
     |0 1 0 1 0 1 0 1| (85 - sample rest of payload)
     +---------------+
     """
-    test "only first mandatory octet" do
+    test "only first mandatory octet (deserialize)" do
       payload = <<51, 85>>
 
       {:ok, {payload_descriptor, rest}} = PayloadDescriptor.parse_payload_descriptor(payload)
@@ -52,6 +52,15 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
 
       assert rest == <<85>>
       assert payload_descriptor == expected_payload_descriptor
+    end
+
+    test "only first mandatory octet (serialize)" do
+      payload_descriptor = %PayloadDescriptor{x: 0, n: 1, s: 1, partition_index: 3}
+
+      expected_serialized = <<51>>
+      actual_serialized = PayloadDescriptor.serialize(payload_descriptor)
+
+      assert expected_serialized == actual_serialized
     end
 
     @doc """
@@ -67,7 +76,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
     +---------------+
     """
 
-    test "extention bits and single byte picture id present" do
+    test "extention bits and single byte picture id present (deserialize)" do
       payload = <<179, 128, 85, 85>>
 
       {:ok, {payload_descriptor, rest}} = PayloadDescriptor.parse_payload_descriptor(payload)
@@ -85,6 +94,23 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
       assert payload_descriptor == expected_payload_descriptor
     end
 
+    test "extention bits and single byte picture id present (serialize)" do
+      payload_descriptor = %PayloadDescriptor{
+        x: 1,
+        n: 1,
+        s: 1,
+        partition_index: 3,
+        i: 1,
+        picture_id: 85
+      }
+
+      expected_serialized = <<179, 128, 85>>
+
+      actual_serialized = PayloadDescriptor.serialize(payload_descriptor)
+
+      assert expected_serialized == actual_serialized
+    end
+
     @doc """
      X R N S R  PID
     +-+-+-+-+-+-+-+-+
@@ -100,7 +126,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
     +---------------+
     """
 
-    test "extention bits and double byte picture id present" do
+    test "extention bits and double byte picture id present (deserialize)" do
       payload = <<179, 128, 213, 85, 85>>
 
       {:ok, {payload_descriptor, rest}} = PayloadDescriptor.parse_payload_descriptor(payload)
@@ -111,11 +137,30 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
         s: 1,
         partition_index: 3,
         i: 1,
-        picture_id: 54_613
+        m: 1,
+        picture_id: 21_845
       }
 
       assert rest == <<85>>
       assert payload_descriptor == expected_payload_descriptor
+    end
+
+    test "extention bits and double byte picture id present (serialize)" do
+      payload_descriptor = %PayloadDescriptor{
+        x: 1,
+        n: 1,
+        s: 1,
+        partition_index: 3,
+        i: 1,
+        m: 1,
+        picture_id: 21_845
+      }
+
+      expected_serialized = <<179, 128, 213, 85>>
+
+      actual_serialized = PayloadDescriptor.serialize(payload_descriptor)
+
+      assert expected_serialized == actual_serialized
     end
 
     @doc """
@@ -131,7 +176,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
     +---------------+
     """
 
-    test "extention bits and TL0PICIDX present" do
+    test "extention bits and TL0PICIDX present (deserialize)" do
       payload = <<179, 64, 85, 85>>
 
       {:ok, {payload_descriptor, rest}} = PayloadDescriptor.parse_payload_descriptor(payload)
@@ -149,25 +194,8 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
       assert payload_descriptor == expected_payload_descriptor
     end
 
-    @doc """
-     X R N S R  PID
-    +-+-+-+-+-+-+-+-+
-    |1|0|1|1|0|0 1 1| (179)
-    +-+-+-+-+-+-+-+-+
-    |0|1|0|0|0 0 0 0| (64)
-    +-+-+-+-+-+-+-+-+
-    |0 1 0 1 0 1 0 1| (85 - TID-Y-KEYIDX)
-    +-+-+-+-+-+-----+
-    |0 1 0 1 0 1 0 1| (85 - sample rest of payload)
-    +---------------+
-    """
-
-    test "extention bits and TID-Y-KEYIDX present" do
-      payload = <<179, 64, 85, 85>>
-
-      {:ok, {payload_descriptor, rest}} = PayloadDescriptor.parse_payload_descriptor(payload)
-
-      expected_payload_descriptor = %PayloadDescriptor{
+    test "extention bits and TL0PICIDX present (serialize)" do
+      payload_descriptor = %PayloadDescriptor{
         x: 1,
         n: 1,
         s: 1,
@@ -176,8 +204,63 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
         tl0picidx: 85
       }
 
+      expected_serialized = <<179, 64, 85>>
+
+      actual_serialized = PayloadDescriptor.serialize(payload_descriptor)
+
+      assert expected_serialized == actual_serialized
+    end
+
+    @doc """
+     X R N S R  PID
+    +-+-+-+-+-+-+-+-+
+    |1|0|1|1|0|0 1 1| (179)
+    +-+-+-+-+-+-+-+-+
+    |0|0|0|1|0 0 0 0| (64)
+    +-+-+-+-+-+-+-+-+
+    |0 1 0 1 0 1 0 1| (85 - TID-Y-KEYIDX)
+    +-+-+-+-+-+-----+
+    |0 1 0 1 0 1 0 1| (85 - sample rest of payload)
+    +---------------+
+    """
+
+    test "extention bits and TID-Y-KEYIDX present (deserialize)" do
+      payload = <<179, 16, 85, 85>>
+
+      {:ok, {payload_descriptor, rest}} = PayloadDescriptor.parse_payload_descriptor(payload)
+
+      expected_payload_descriptor = %PayloadDescriptor{
+        x: 1,
+        n: 1,
+        s: 1,
+        partition_index: 3,
+        k: 1,
+        tid: 1,
+        y: 0,
+        keyidx: 21
+      }
+
       assert rest == <<85>>
       assert payload_descriptor == expected_payload_descriptor
+    end
+
+    test "extention bits and TID-Y-KEYIDX present (serialize)" do
+      payload_descriptor = %PayloadDescriptor{
+        x: 1,
+        n: 1,
+        s: 1,
+        partition_index: 3,
+        k: 1,
+        tid: 1,
+        y: 0,
+        keyidx: 21
+      }
+
+      expected_serialized = <<179, 16, 85>>
+
+      actual_serialized = PayloadDescriptor.serialize(payload_descriptor)
+
+      assert expected_serialized == actual_serialized
     end
 
     @doc """
@@ -199,7 +282,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
     +-+-+-+-+-+-+-+-+
     """
 
-    test "extention bits, extended picture ID, TL0PICIDX and TID-Y-KEYIDX" do
+    test "extention bits, extended picture ID, TL0PICIDX and TID-Y-KEYIDX (deserialize)" do
       payload = <<179, 208, 213, 85, 85, 84, 170>>
 
       {:ok, {payload_descriptor, rest}} = PayloadDescriptor.parse_payload_descriptor(payload)
@@ -212,7 +295,8 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
         i: 1,
         l: 1,
         k: 1,
-        picture_id: 54_613,
+        m: 1,
+        picture_id: 21_845,
         tl0picidx: 85,
         tid: 1,
         keyidx: 20
@@ -220,6 +304,29 @@ defmodule Membrane.RTP.VP8.PayloadDescriptorTest do
 
       assert rest == <<170>>
       assert payload_descriptor == expected_payload_descriptor
+    end
+
+    test "extention bits, extended picture ID, TL0PICIDX and TID-Y-KEYIDX (serialize)" do
+      payload_descriptor = %PayloadDescriptor{
+        x: 1,
+        n: 1,
+        s: 1,
+        partition_index: 3,
+        i: 1,
+        l: 1,
+        k: 1,
+        m: 1,
+        picture_id: 21_845,
+        tl0picidx: 85,
+        tid: 1,
+        keyidx: 20
+      }
+
+      expected_serialized = <<179, 208, 213, 85, 85, 84>>
+
+      actual_serialized = PayloadDescriptor.serialize(payload_descriptor)
+
+      assert expected_serialized == actual_serialized
     end
   end
 end

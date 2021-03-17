@@ -53,12 +53,50 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
                 l: 0,
                 t: 0,
                 k: 0,
+                m: 0,
                 picture_id: 0,
                 tl0picidx: 0,
                 tid: 0,
                 y: 0,
                 keyidx: 0
               ]
+
+  @spec serialize(__MODULE__.t()) :: binary()
+  def serialize(payload_descriptor) do
+    %__MODULE__{
+      x: x,
+      n: n,
+      s: s,
+      partition_index: partition_index,
+      i: i,
+      l: l,
+      t: t,
+      k: k,
+      m: m,
+      picture_id: picture_id,
+      tl0picidx: tl0picidx,
+      tid: tid,
+      y: y,
+      keyidx: keyidx
+    } = payload_descriptor
+
+    xnspid = <<x::1, 0::1, n::1, s::1, 0::1, partition_index::3>>
+
+    iltk = if x == 1, do: <<i::1, l::1, t::1, k::1, 0::4>>, else: <<>>
+
+    picture_id =
+      case {i, m} do
+        {1, 0} -> <<m::1, picture_id::7>>
+        {1, 1} -> <<m::1, picture_id::15>>
+        {0, _} -> <<>>
+      end
+
+    tl0picidx = if l == 1, do: <<tl0picidx>>, else: <<>>
+
+    tidykeyidx = if t == 1 or k == 1, do: <<tid::2, y::1, keyidx::5>>, else: <<>>
+
+    xnspid <> iltk <> picture_id <> tl0picidx <> tidykeyidx
+  end
 
   @spec parse_payload_descriptor(binary()) ::
           {:error, :malformed_data | :payload_too_short} | {:ok, {t(), binary()}}
@@ -106,11 +144,11 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
 
   defp get_picture_id(descriptor_acc, <<0::1, picture_id::7, rest::binary()>>)
        when byte_size(rest) > 0,
-       do: {:ok, {%__MODULE__{descriptor_acc | picture_id: picture_id}, rest}}
+       do: {:ok, {%__MODULE__{descriptor_acc | m: 0, picture_id: picture_id}, rest}}
 
-  defp get_picture_id(descriptor_acc, <<picture_id::16, rest::binary()>>)
+  defp get_picture_id(descriptor_acc, <<1::1, picture_id::15, rest::binary()>>)
        when byte_size(rest) > 0,
-       do: {:ok, {%__MODULE__{descriptor_acc | picture_id: picture_id}, rest}}
+       do: {:ok, {%__MODULE__{descriptor_acc | m: 1, picture_id: picture_id}, rest}}
 
   defp get_picture_id(_descriptor_acc, _rest), do: {:error, :payload_too_short}
 

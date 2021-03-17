@@ -8,7 +8,8 @@ defmodule Membrane.RTP.VP8.Plugin.App do
     PayloadFormat.register(%PayloadFormat{
       encoding_name: :VP8,
       payload_type: 98,
-      depayloader: VP8.Depayloader
+      depayloader: VP8.Depayloader,
+      payloader: VP8.Payloader
     })
 
     PayloadFormat.register_payload_type_mapping(98, :VP8, 90_000)
