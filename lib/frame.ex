@@ -21,7 +21,7 @@ defmodule Membrane.RTP.VP8.Frame do
 
   @spec parse(Buffer.t(), t()) ::
           {:ok, binary(), t()}
-          | {:incomplete, t()}
+          | {:ok, :incomplete, t()}
           | {:error,
              :packet_malformed
              | :invalid_first_packet
@@ -56,7 +56,7 @@ defmodule Membrane.RTP.VP8.Frame do
           t()
         ) ::
           {:ok, binary(), t()}
-          | {:incomplete, t()}
+          | {:ok, :incomplete, t()}
           | {:error, :invalid_first_packet | :missing_packet | :timestamps_not_equal}
   defp do_parse(payload_descriptor, payload, timestamp, sequence_number, acc)
 
@@ -68,7 +68,7 @@ defmodule Membrane.RTP.VP8.Frame do
          sequence_number,
          %__MODULE__{fragments: []} = acc
        ) do
-    {:incomplete,
+    {:ok, :incomplete,
      %{acc | last_seq_num: sequence_number, last_timestamp: timestamp, fragments: [payload]}}
   end
 
@@ -106,7 +106,8 @@ defmodule Membrane.RTP.VP8.Frame do
          %__MODULE__{last_seq_num: last_seq_num, last_timestamp: last_timestamp} = acc
        )
        when is_next(last_seq_num, sequence_number) and equal_timestamp(last_timestamp, timestamp) do
-    {:incomplete, %{acc | last_seq_num: sequence_number, fragments: [payload | acc.fragments]}}
+    {:ok, :incomplete,
+     %{acc | last_seq_num: sequence_number, fragments: [payload | acc.fragments]}}
   end
 
   # either timestamps are not equal or packet is missing
