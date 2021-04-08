@@ -19,13 +19,12 @@ defmodule Membrane.RTP.VP8.BooleanEntropyDecoder do
   @max_int_32 4_294_967_295
 
   @opaque t :: %__MODULE__{
-          input: binary(),
-          range: 0..4_294_967_295,
-          value: 0..4_294_967_295,
-          bit_count: non_neg_integer()
-        }
+            input: binary(),
+            range: 0..4_294_967_295,
+            value: 0..4_294_967_295,
+            bit_count: non_neg_integer()
+          }
   defstruct [:input, :range, :value, :bit_count]
-
 
   @spec init_bool_decoder(binary()) :: {:ok, t()}
   def init_bool_decoder(input) do
@@ -37,11 +36,14 @@ defmodule Membrane.RTP.VP8.BooleanEntropyDecoder do
   @spec read_bool(t(), 0..255) :: {0..1, t()}
   def read_bool(state, prob) do
     split = (1 + div((state.range - 1) * prob, 256)) |> rem(@max_int_32 + 1)
-    split2 = split * 256
+
+    # note that in order to compare most significant byte of 16bit value with split we need to shift split by on byte left
+    split_shifted = split * 256
 
     {ret_val, state} =
-      if state.value >= split2,
-        do: {1, %__MODULE__{state | range: state.range - split, value: state.value - split2}},
+      if state.value >= split_shifted,
+        do:
+          {1, %__MODULE__{state | range: state.range - split, value: state.value - split_shifted}},
         else: {0, %__MODULE__{state | range: split}}
 
     state =
@@ -59,7 +61,8 @@ defmodule Membrane.RTP.VP8.BooleanEntropyDecoder do
               {bit_count, value, state.input}
             end
 
-          {:cont, %__MODULE__{state | value: value, range: range, bit_count: bit_count, input: input}}
+          {:cont,
+           %__MODULE__{state | value: value, range: range, bit_count: bit_count, input: input}}
         else
           {:halt, state}
         end
