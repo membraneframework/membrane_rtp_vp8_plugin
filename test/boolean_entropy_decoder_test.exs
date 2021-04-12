@@ -6,7 +6,7 @@ defmodule Membrane.RTP.VP8.BooleanEntropyDecoderTest do
   test "decoding with prob 128/256" do
     input = <<65, 54, 37, 13, 21>>
 
-    {:ok, boolean_decoder} = BooleanEntropyDecoder.init_bool_decoder(input)
+    {:ok, boolean_decoder} = BooleanEntropyDecoder.init(input)
 
     {actual_output_list, state} =
       1..3

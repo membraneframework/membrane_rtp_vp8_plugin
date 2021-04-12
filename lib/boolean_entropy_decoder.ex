@@ -26,8 +26,8 @@ defmodule Membrane.RTP.VP8.BooleanEntropyDecoder do
           }
   defstruct [:input, :range, :value, :bit_count]
 
-  @spec init_bool_decoder(binary()) :: {:ok, t()}
-  def init_bool_decoder(input) do
+  @spec init(binary()) :: {:ok, t()}
+  def init(input) do
     <<value::16, input::binary()>> = input
 
     {:ok, %__MODULE__{input: input, value: value, range: 255, bit_count: 0}}
@@ -47,26 +47,22 @@ defmodule Membrane.RTP.VP8.BooleanEntropyDecoder do
         else: {0, %__MODULE__{state | range: split}}
 
     state =
-      Enum.reduce_while(1..7, state, fn _i, state ->
-        if state.range < 128 do
-          value = (state.value * 2) |> rem(@max_int_32)
-          range = (state.range * 2) |> rem(@max_int_32)
-          bit_count = state.bit_count + 1
+      Stream.iterate(state, fn state ->
+        value = (state.value * 2) |> rem(@max_int_32)
+        range = (state.range * 2) |> rem(@max_int_32)
+        bit_count = state.bit_count + 1
 
-          {bit_count, value, input} =
-            if bit_count == 8 do
-              <<next_byte, input::binary()>> = state.input
-              {0, value + next_byte, input}
-            else
-              {bit_count, value, state.input}
-            end
+        {bit_count, value, input} =
+          if bit_count == 8 do
+            <<next_byte, input::binary()>> = state.input
+            {0, value + next_byte, input}
+          else
+            {bit_count, value, state.input}
+          end
 
-          {:cont,
-           %__MODULE__{state | value: value, range: range, bit_count: bit_count, input: input}}
-        else
-          {:halt, state}
-        end
+        %__MODULE__{state | value: value, range: range, bit_count: bit_count, input: input}
       end)
+      |> Enum.find(&(&1.range > 128))
 
     {ret_val, state}
   end
@@ -81,5 +77,12 @@ defmodule Membrane.RTP.VP8.BooleanEntropyDecoder do
       end)
 
     {v, state}
+  end
+
+  @spec skip_literal(t(), integer) :: t()
+  def skip_literal(state, num_bits) do
+    {_v, state} = read_literal(state, num_bits)
+
+    state
   end
 end

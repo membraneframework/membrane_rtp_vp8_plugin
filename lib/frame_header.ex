@@ -110,7 +110,7 @@ defmodule Membrane.RTP.VP8.FrameHeader do
     with {:ok, {header_acc, rest}} <- decode_frame_tag(frame, %__MODULE__{}),
          {:ok, {header_acc, rest}} <- decode_width_height(rest, header_acc),
          <<header::binary-size(header_size), _rest::bitstring()>> <- rest,
-         {:ok, decoder_state} <- BooleanEntropyDecoder.init_bool_decoder(header),
+         {:ok, decoder_state} <- BooleanEntropyDecoder.init(header),
          {:ok, decoder_state} <- skip_colour_space_and_clamping_type(decoder_state),
          {:ok, decoder_state} <- skip_segmentation_data(decoder_state),
          {:ok, decoder_state} <- skip_filter_config(decoder_state),
@@ -179,19 +179,25 @@ defmodule Membrane.RTP.VP8.FrameHeader do
   defp skip_segment_feature_data(1, bool_decoder) do
     {_segment_feature_mode, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_bool(128)
 
-    bool_decoder |> read_flagged_literals(4, 8) |> read_flagged_literals(4, 7)
+    bool_decoder |> skip_flagged_literals(4, 8) |> skip_flagged_literals(4, 7)
   end
 
   defp skip_update_mb_segmentation_map(0, bool_decoder), do: bool_decoder
 
   defp skip_update_mb_segmentation_map(1, bool_decoder) do
-    bool_decoder |> read_flagged_literals(3, 8)
+    bool_decoder |> skip_flagged_literals(3, 8)
   end
 
   defp skip_filter_config(bool_decoder) do
-    {_v, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_literal(1)
-    {_v, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_literal(6)
-    {_v, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_literal(3)
+    bool_decoder =
+      bool_decoder
+      # filter type (1 bit)
+      |> BooleanEntropyDecoder.skip_literal(1)
+      # loop filter level (6 bit)
+      |> BooleanEntropyDecoder.skip_literal(6)
+      # sharpness level (3 bit)
+      |> BooleanEntropyDecoder.skip_literal(3)
+
     {:ok, bool_decoder}
   end
 
@@ -214,7 +220,7 @@ defmodule Membrane.RTP.VP8.FrameHeader do
   defp skip_delta_update(0, bool_decoder), do: bool_decoder
 
   defp skip_delta_update(1, bool_decoder) do
-    bool_decoder |> read_flagged_literals(8, 7)
+    bool_decoder |> skip_flagged_literals(8, 7)
   end
 
   defp decode_partitions_count(bool_decoder, header_acc) do
@@ -250,15 +256,14 @@ defmodule Membrane.RTP.VP8.FrameHeader do
     {:ok, {%{header_acc | sizes: [first_partition_size] ++ sizes}, rest}}
   end
 
-  defp read_flagged_literals(bool_decoder, amount, literal_size) do
+  defp skip_flagged_literals(bool_decoder, amount, literal_size) do
     1..amount
     |> Enum.reduce(bool_decoder, fn _i, bool_decoder ->
       {flag, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_bool(128)
 
       case flag do
         1 ->
-          {_v, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_literal(literal_size)
-          bool_decoder
+          bool_decoder |> BooleanEntropyDecoder.skip_literal(literal_size)
 
         0 ->
           bool_decoder
