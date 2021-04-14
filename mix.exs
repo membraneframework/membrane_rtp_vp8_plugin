@@ -42,16 +42,18 @@ defmodule Membrane.Template.Mixfile do
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.4", only: :dev, runtime: false},
-      {:membrane_rtp_format, "~> 0.3.1"},
+      {:membrane_rtp_format, "~> 0.3.0"},
       {:membrane_remote_stream_format, "~> 0.1.0"},
       {:membrane_vp8_format, github: "membraneframework/membrane_vp8_format", branch: "master"},
       {:membrane_element_pcap, github: "membraneframework/membrane-element-pcap", only: :test},
       {:membrane_file_plugin, "~> 0.5.0", only: :test},
       {:membrane_rtp_plugin, "~> 0.5.0", only: :test},
       {:ex_libsrtp, "~> 0.1.0"},
-      {:membrane_element_ivf,
-       github: "membraneframework/membrane_ivf_plugin",
-       branch: "moved-from-vp9-plugin",
+      {:membrane_ivf_plugin,
+       github: "membraneframework/membrane_ivf_plugin", branch: "deserializer", only: :test},
+      {:membrane_buffer_capture_plugin,
+       github: "membraneframework/membrane_buffer_capture_plugin",
+       branch: "capture-maker",
        only: :test}
     ]
   end
