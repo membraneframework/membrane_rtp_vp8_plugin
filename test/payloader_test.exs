@@ -1,7 +1,7 @@
 defmodule Membrane.RTP.VP8.PayloaderTest do
   use ExUnit.Case
 
-  alias Membrane.RTP.VP8.{Payloader, FrameHeader}
+  alias Membrane.RTP.VP8.Payloader
   alias Membrane.RTP.VP8.Payloader.State
   alias Membrane.RTP.VP8.PayloadDescriptor
   alias Membrane.Buffer
@@ -101,139 +101,6 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                     %Buffer{
                       metadata: %{rtp: %{marker: true}},
                       payload: following_descriptor <> <<10, 11>>
-                    }
-                  ]},
-               redemand: :output
-             ]},
-            payloader_state} ==
-             Payloader.handle_process(:input, input_buffer, nil, payloader_state)
-  end
-
-  test "advanced payloading" do
-    input0 = <<2::3, 0::5>>
-    input1 = <<1>>
-    input2 = <<0>>
-
-    partition0 =
-      <<80, 1, 0, 157, 1, 42, 10, 0, 10, 0, 21, 82, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 0, 0, 5,
-        0, 0>>
-
-    partition1 = <<5, 5, 5, 5, 5>>
-    partition2 = <<5, 5, 5, 5, 5>>
-    partition3 = <<5, 5, 5, 5, 5>>
-    partition4 = <<5, 5, 5, 5, 5>>
-
-    frame = partition0 <> partition1 <> partition2 <> partition3 <> partition4
-
-    input_buffer = %Buffer{payload: frame}
-
-    {:ok, payloader_state} =
-      Payloader.handle_init(%Payloader{max_payload_size: 5, fragmentation_method: :advanced})
-
-    assert {{:ok,
-             [
-               buffer:
-                 {:output,
-                  [
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 1,
-                          partition_index: 0
-                        }) <> <<80, 1, 0, 157, 1>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 0
-                        }) <> <<42, 10, 0, 10, 0>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 0
-                        }) <> <<21, 82, 0, 0, 0>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 0
-                        }) <> <<0, 0, 0, 0, 0>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 0
-                        }) <> <<5, 0, 0, 5, 0>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 0
-                        }) <> <<0, 5, 0, 0>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 1
-                        }) <> <<5, 5, 5, 5, 5>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 2
-                        }) <> <<5, 5, 5, 5, 5>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 3
-                        }) <> <<5, 5, 5, 5, 5>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: true}},
-                      payload:
-                        PayloadDescriptor.serialize(%PayloadDescriptor{
-                          x: 0,
-                          n: 0,
-                          s: 0,
-                          partition_index: 4
-                        }) <> <<5, 5, 5, 5, 5>>
                     }
                   ]},
                redemand: :output
