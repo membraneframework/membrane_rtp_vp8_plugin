@@ -25,10 +25,11 @@ defmodule Membrane.RTP.VP8.FrameHeader do
       +-------------+-------------+-------------+-------------+
 
     [### COMPRESSED PART ###]
-    colour space(1 bit) and clamping type(1 bit):
-    +-+-+
-    |s|t|
-    +-+-+
+    if (key_frame)
+      colour space(1 bit) and clamping type(1 bit):
+      +-+-+
+      |s|t|
+      +-+-+
 
     +-+
     |e| : e - segmentation_enabled (1 bit)
@@ -111,7 +112,8 @@ defmodule Membrane.RTP.VP8.FrameHeader do
          {:ok, {header_acc, rest}} <- decode_width_height(rest, header_acc),
          <<header::binary-size(header_size), _rest::bitstring()>> <- rest,
          {:ok, decoder_state} <- BooleanEntropyDecoder.init(header),
-         {:ok, decoder_state} <- skip_colour_space_and_clamping_type(decoder_state),
+         {:ok, decoder_state} <-
+           skip_colour_space_and_clamping_type(decoder_state, header_acc.is_keyframe),
          {:ok, decoder_state} <- skip_segmentation_data(decoder_state),
          {:ok, decoder_state} <- skip_filter_config(decoder_state),
          {:ok, decoder_state} <- skip_loop_filter_adj(decoder_state),
@@ -147,11 +149,14 @@ defmodule Membrane.RTP.VP8.FrameHeader do
     end
   end
 
-  defp skip_colour_space_and_clamping_type(bool_decoder) do
-    {_colour_space, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_bool(128)
-    {_clamping_type, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_bool(128)
-
-    {:ok, bool_decoder}
+  defp skip_colour_space_and_clamping_type(bool_decoder, is_keyframe) do
+    if is_keyframe do
+      {_colour_space, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_bool(128)
+      {_clamping_type, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_bool(128)
+      {:ok, bool_decoder}
+    else
+      {:ok, bool_decoder}
+    end
   end
 
   defp skip_segmentation_data(bool_decoder) do
@@ -202,9 +207,8 @@ defmodule Membrane.RTP.VP8.FrameHeader do
   end
 
   defp skip_loop_filter_adj(bool_decoder) do
-    {loop_filter_adj_enabled, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_bool(128)
-
-    bool_decoder = skip_lf_delta_update(loop_filter_adj_enabled, bool_decoder)
+    {lf_adj_enabled, bool_decoder} = BooleanEntropyDecoder.read_bool(bool_decoder, 128)
+    bool_decoder = skip_lf_delta_update(lf_adj_enabled, bool_decoder)
 
     {:ok, bool_decoder}
   end
@@ -212,7 +216,7 @@ defmodule Membrane.RTP.VP8.FrameHeader do
   defp skip_lf_delta_update(0, bool_decoder), do: bool_decoder
 
   defp skip_lf_delta_update(1, bool_decoder) do
-    {lf_delta_update, bool_decoder} = bool_decoder |> BooleanEntropyDecoder.read_bool(128)
+    {lf_delta_update, bool_decoder} = BooleanEntropyDecoder.read_bool(bool_decoder, 128)
 
     skip_delta_update(lf_delta_update, bool_decoder)
   end

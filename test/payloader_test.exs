@@ -6,6 +6,19 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
   alias Membrane.RTP.VP8.PayloadDescriptor
   alias Membrane.Buffer
 
+  test "payloading on real buffers" do
+    {:ok, buffers_bin} = File.read("test/fixtures/buffers_capture.dump")
+    buffers = :erlang.binary_to_term(buffers_bin)
+
+    {:ok, payloader_state} = Payloader.handle_init(%Payloader{fragmentation_method: :advanced})
+
+    buffers
+    |> Enum.reduce(payloader_state, fn buffer, state ->
+      {_, state} = Payloader.handle_process(:input, buffer, nil, state)
+      state
+    end)
+  end
+
   test "fragmentation not required" do
     input_payload = <<1, 2, 3>>
     input_buffer = %Buffer{payload: input_payload}
