@@ -6,7 +6,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
   use Membrane.Filter
   use Membrane.Log
 
-  alias Membrane.Caps.VP8
+  alias Membrane.VP8
   alias Membrane.RTP.VP8.Frame
   alias Membrane.{Buffer, RemoteStream, RTP}
   alias Membrane.Event.Discontinuity
