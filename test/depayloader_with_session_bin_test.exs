@@ -103,5 +103,7 @@ defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
     assert_pipeline_playback_changed(pipeline, _, :stopped)
 
     assert File.read!(@ivf_result_file) == File.read!(@ivf_reference_file)
+
+    Testing.Pipeline.stop_and_terminate(pipeline, blocking?: true)
   end
 end

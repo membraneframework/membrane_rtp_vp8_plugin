@@ -44,9 +44,10 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
       {:membrane_vp8_format, github: "membraneframework/membrane_vp8_format"},
       {:membrane_element_pcap, github: "membraneframework/membrane-element-pcap", only: :test},
       {:membrane_file_plugin, "~> 0.5.0", only: :test},
-      {:membrane_rtp_plugin, "~> 0.5.0", only: :test},
+      {:membrane_rtp_plugin, "~> 0.5.1", only: :test},
       {:ex_libsrtp, "~> 0.1.0", only: :test},
-      {:membrane_ivf_plugin, github: "membraneframework/membrane_ivf_plugin", branch: :release, only: :test},
+      {:membrane_ivf_plugin,
+       github: "membraneframework/membrane_ivf_plugin", branch: :release, only: :test},
       {:ex_doc, "~> 0.24", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.4", only: :dev, runtime: false}

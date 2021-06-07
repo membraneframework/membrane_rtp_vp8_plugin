@@ -1,6 +1,6 @@
 defmodule Membrane.RTP.VP8.Depayloader do
   @moduledoc """
-  Payloads VP8 frames into RTP packets according to: https://tools.ietf.org/html/rfc7741
+  Depayloads VP8 frames from RTP packets according to: https://tools.ietf.org/html/rfc7741
   """
 
   use Membrane.Filter
@@ -42,7 +42,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
   @impl true
   def handle_event(:input, %Discontinuity{} = event, _ctx, state),
-    do: {{:ok, forward: event}, %State{state | frame_acc: nil}}
+    do: {{:ok, forward: event}, %State{state | frame_acc: %Frame{}}}
 
   @impl true
   def handle_process(:input, buffer, _ctx, state) do

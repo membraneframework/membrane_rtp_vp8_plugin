@@ -1,6 +1,6 @@
 defmodule Membrane.RTP.VP8.Payloader do
   @moduledoc """
-  Depayloads VP8 frames from RTP packets according to: https://tools.ietf.org/html/rfc7741
+  Payloads VP8 frames into RTP packets according to: https://tools.ietf.org/html/rfc7741
   """
 
   use Membrane.Filter

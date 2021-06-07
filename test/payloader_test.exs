@@ -107,6 +107,5 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
              ]},
             payloader_state} ==
              Payloader.handle_process(:input, input_buffer, nil, payloader_state)
-      # Testing.Pipeline.stop_and_terminate(pipeline, blocking?: true)
   end
 end
