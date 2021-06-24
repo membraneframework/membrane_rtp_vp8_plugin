@@ -1,11 +1,11 @@
 defmodule Membrane.RTP.VP8.Payloader do
   @moduledoc """
-  TODO
+  Payloads VP8 frames into RTP packets according to: https://tools.ietf.org/html/rfc7741
   """
 
   use Membrane.Filter
 
-  alias Membrane.Caps.VP8
+  alias Membrane.VP8
   alias Membrane.{Buffer, RemoteStream, RTP}
 
   # s-bit set and partition index equal to 0
