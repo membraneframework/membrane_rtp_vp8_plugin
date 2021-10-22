@@ -4,7 +4,7 @@ defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
   import Membrane.Testing.Assertions
 
   alias Membrane.Testing
-  alias Membrane.{RTP, Buffer}
+  alias Membrane.RTP
   alias Membrane.Element.IVF
 
   @results_dir "./test/results"

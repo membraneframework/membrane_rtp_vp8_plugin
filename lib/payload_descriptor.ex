@@ -92,17 +92,12 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
       end
 
     tl0picidx = if l == 1, do: <<tl0picidx>>, else: <<>>
-
     tidykeyidx = if t == 1 or k == 1, do: <<tid::2, y::1, keyidx::5>>, else: <<>>
-
     xnspid <> iltk <> picture_id <> tl0picidx <> tidykeyidx
   end
 
   @spec parse_payload_descriptor(binary()) ::
           {:error, :malformed_data | :payload_too_short} | {:ok, {t(), binary()}}
-  def parse_payload_descriptor(payload) when byte_size(payload) <= 1,
-    do: {:error, :payload_too_short}
-
   def parse_payload_descriptor(
         <<x::1, 0::1, n::1, s::1, 0::1, partition_index::3, rest::binary()>>
       )
@@ -119,24 +114,24 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
     end
   end
 
+  def parse_payload_descriptor(payload) when byte_size(payload) <= 1,
+    do: {:error, :payload_too_short}
+
   def parse_payload_descriptor(_payload), do: {:error, :malformed_data}
 
   defp get_extended_control_bits(%__MODULE__{x: 0} = descriptor_acc, rest),
     do: {:ok, {descriptor_acc, rest}}
 
-  defp get_extended_control_bits(_descriptor_acc, <<_iltk::4, rsv::4, _rest::binary()>>)
-       when rsv > 0,
-       do: {:error, :malformed_data}
-
   defp get_extended_control_bits(
          descriptor_acc,
-         <<extended_control_bits::binary-size(1), rest::binary>>
+         <<i::1, l::1, t::1, k::1, rsv::4, rest::binary>>
        )
-       when byte_size(rest) > 0 do
-    <<i::1, l::1, t::1, k::1, _rsv::4>> = extended_control_bits
-
+       when rsv == 0 and byte_size(rest) > 0 do
     {:ok, {%__MODULE__{descriptor_acc | i: i, l: l, t: t, k: k}, rest}}
   end
+
+  defp get_extended_control_bits(_descriptor_acc, <<_iltk::4, _rsv::4, _rest::binary()>>),
+    do: {:error, :malformed_data}
 
   defp get_extended_control_bits(_descriptor_acc, _rest), do: {:error, :payload_too_short}
 
