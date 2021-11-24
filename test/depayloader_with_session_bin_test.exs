@@ -42,7 +42,7 @@ defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
 
     @impl true
     def handle_notification(
-          {:new_rtp_stream, ssrc, _pt},
+          {:new_rtp_stream, ssrc, _pt, _extensions},
           :rtp,
           _ctx,
           %{result_file: result_file, video: video} = state
@@ -55,7 +55,7 @@ defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
         ],
         links: [
           link(:rtp)
-          |> via_out(Pad.ref(:output, ssrc))
+          |> via_out(Pad.ref(:output, ssrc), options: [depayloader: Membrane.RTP.VP8.Depayloader])
           |> to({:ivf_writter, ssrc})
           |> to({:file_sink, ssrc})
         ]

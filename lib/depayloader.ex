@@ -48,9 +48,10 @@ defmodule Membrane.RTP.VP8.Depayloader do
   def handle_process(:input, buffer, _ctx, state) do
     state = %{state | first_buffer_metadata: state.first_buffer_metadata || buffer.metadata}
 
-    with {{:ok, actions}, new_state} <- parse_buffer(buffer, state) do
-      {{:ok, actions ++ [redemand: :output]}, new_state}
-    else
+    case parse_buffer(buffer, state) do
+      {{:ok, actions}, new_state} ->
+        {{:ok, actions ++ [redemand: :output]}, new_state}
+
       {:error, reason} ->
         log_malformed_buffer(buffer, reason)
         {{:ok, redemand: :output}, %State{}}
