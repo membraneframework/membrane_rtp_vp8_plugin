@@ -2,7 +2,6 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
   use ExUnit.Case
 
   alias Membrane.RTP.VP8.Payloader
-  alias Membrane.RTP.VP8.Payloader.State
   alias Membrane.RTP.VP8.PayloadDescriptor
   alias Membrane.Buffer
 
