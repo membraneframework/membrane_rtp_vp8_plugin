@@ -4,12 +4,13 @@ defmodule Membrane.RTP.VP8.Depayloader do
   """
 
   use Membrane.Filter
-  use Membrane.Log
 
   alias Membrane.VP8
   alias Membrane.RTP.VP8.Frame
   alias Membrane.{Buffer, RemoteStream, RTP}
   alias Membrane.Event.Discontinuity
+
+  require Membrane.Logger
 
   @type sequence_number :: 0..65_535
 
@@ -22,9 +23,9 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
     @type t :: %__MODULE__{
             frame_acc: Frame.t(),
-            first_buffer_metadata: nil | %{}
+            first_buffer: nil | Buffer.t()
           }
-    defstruct frame_acc: %Frame{}, first_buffer_metadata: nil
+    defstruct frame_acc: %Frame{}, first_buffer: nil
   end
 
   @impl true
@@ -45,8 +46,24 @@ defmodule Membrane.RTP.VP8.Depayloader do
     do: {{:ok, forward: event}, %State{state | frame_acc: %Frame{}}}
 
   @impl true
+  def handle_end_of_stream(:input, _ctx, %State{first_buffer: nil} = state) do
+    {{:ok, end_of_stream: :output}, state}
+  end
+
+  @impl true
+  def handle_end_of_stream(:input, _ctx, state) do
+    {frame, _acc} = Frame.flush(state.frame_acc)
+
+    {{:ok,
+      [
+        buffer: {:output, %Buffer{state.first_buffer | payload: frame}},
+        end_of_stream: :output
+      ]}, %State{}}
+  end
+
+  @impl true
   def handle_process(:input, buffer, _ctx, state) do
-    state = %{state | first_buffer_metadata: state.first_buffer_metadata || buffer.metadata}
+    state = %{state | first_buffer: state.first_buffer || buffer}
 
     case parse_buffer(buffer, state) do
       {{:ok, actions}, new_state} ->
@@ -58,26 +75,14 @@ defmodule Membrane.RTP.VP8.Depayloader do
     end
   end
 
-  @impl true
-  def handle_end_of_stream(:input, _ctx, state) do
-    {frame, _acc} = Frame.flush(state.frame_acc)
-
-    {{:ok,
-      [
-        buffer: {:output, %Buffer{metadata: state.first_buffer_metadata, payload: frame}},
-        end_of_stream: :output
-      ]}, %State{}}
-  end
-
   defp parse_buffer(buffer, state) do
     case Frame.parse(buffer, state.frame_acc) do
       {:ok, :incomplete, acc} ->
         {{:ok, []}, %State{state | frame_acc: acc}}
 
       {:ok, frame, acc} ->
-        {{:ok,
-          [buffer: {:output, %{buffer | payload: frame, metadata: state.first_buffer_metadata}}]},
-         %State{state | frame_acc: acc, first_buffer_metadata: buffer.metadata}}
+        {{:ok, [buffer: {:output, %{state.first_buffer | payload: frame}}]},
+         %State{state | frame_acc: acc, first_buffer: buffer}}
 
       {:error, _} = error ->
         error
@@ -85,7 +90,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
   end
 
   defp log_malformed_buffer(packet, reason) do
-    warn("""
+    Membrane.Logger.warn("""
     An error occurred while parsing RTP packet.
     Reason: #{reason}
     Packet: #{inspect(packet, limit: :infinity)}

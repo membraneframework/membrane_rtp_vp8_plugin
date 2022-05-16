@@ -4,7 +4,7 @@ defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
   import Membrane.Testing.Assertions
 
   alias Membrane.Testing
-  alias Membrane.{RTP, Buffer}
+  alias Membrane.RTP
   alias Membrane.Element.IVF
 
   @results_dir "./test/results"
@@ -25,7 +25,7 @@ defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
     def handle_init(options) do
       spec = %ParentSpec{
         children: [
-          pcap: %Membrane.Element.Pcap.Source{path: options.input.pcap},
+          pcap: %Membrane.Pcap.Source{path: options.input.pcap},
           rtp: %RTP.SessionBin{
             fmt_mapping: options.fmt_mapping
           }
@@ -37,7 +37,8 @@ defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
         ]
       }
 
-      {{:ok, spec: spec}, %{:result_file => options.result_file, :video => options.input.video}}
+      {{:ok, spec: spec, playback: :playing},
+       %{:result_file => options.result_file, :video => options.input.video}}
     end
 
     @impl true
@@ -80,30 +81,26 @@ defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
     end
 
     {:ok, pipeline} =
-      %Testing.Pipeline.Options{
+      [
         module: TestPipeline,
         custom_args: %{
           input: input,
           result_file: result_file,
           fmt_mapping: @fmt_mapping
         }
-      }
+      ]
       |> Testing.Pipeline.start_link()
 
-    Testing.Pipeline.play(pipeline)
     assert_pipeline_playback_changed(pipeline, _, :playing)
 
     %{video: %{ssrc: video_ssrc}} = input
 
     assert_start_of_stream(pipeline, {:file_sink, ^video_ssrc})
 
-    assert_end_of_stream(pipeline, {:file_sink, ^video_ssrc})
-
-    Testing.Pipeline.stop(pipeline)
-    assert_pipeline_playback_changed(pipeline, _, :stopped)
+    assert_end_of_stream(pipeline, {:file_sink, ^video_ssrc}, :input, 4000)
 
     assert File.read!(@ivf_result_file) == File.read!(@ivf_reference_file)
 
-    Testing.Pipeline.stop_and_terminate(pipeline, blocking?: true)
+    Testing.Pipeline.terminate(pipeline, blocking?: true)
   end
 end
