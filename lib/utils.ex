@@ -25,7 +25,7 @@ defmodule Membrane.RTP.VP8.Utils do
   @spec is_new_frame(binary()) :: boolean()
   def is_new_frame(rtp_payload) do
     with {:ok, {payload_descriptor, _payload}} <-
-          Membrane.RTP.VP8.PayloadDescriptor.parse_payload_descriptor(rtp_payload) do
+           Membrane.RTP.VP8.PayloadDescriptor.parse_payload_descriptor(rtp_payload) do
       payload_descriptor.s == 1 and payload_descriptor.partition_index == 0
     else
       _err -> false
