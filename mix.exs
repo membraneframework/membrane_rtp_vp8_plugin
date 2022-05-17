@@ -1,7 +1,7 @@
 defmodule Membrane.RTP.VP8.Plugin.Mixfile do
   use Mix.Project
 
-  @version "0.3.0"
+  @version "0.4.0"
   @github_url "https://github.com/membraneframework/membrane_rtp_vp8_plugin"
 
   def project do
@@ -37,14 +37,15 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
 
   defp deps do
     [
-      {:membrane_core, "~> 0.8.0"},
-      {:membrane_rtp_format, "~> 0.3.1"},
-      {:membrane_vp8_format, "~> 0.3.0"},
-      {:membrane_file_plugin, "~> 0.7.0", only: :test},
-      {:membrane_rtp_plugin, "~> 0.9.0", only: :test},
+      {:membrane_core, "~> 0.10.0"},
+      {:membrane_rtp_format, "~> 0.4.0"},
+      {:membrane_vp8_format, "~> 0.4.0"},
+      {:membrane_file_plugin, "~> 0.12.0"},
+      {:membrane_rtp_plugin, "~> 0.12.0", only: :test},
       {:ex_libsrtp, "~> 0.3.0", only: :test},
-      {:membrane_element_pcap, github: "membraneframework/membrane-element-pcap", only: :test},
-      {:membrane_ivf_plugin, "~> 0.3.0", only: :test},
+      {:membrane_pcap_plugin,
+       github: "membraneframework/membrane_pcap_plugin", tag: "v0.6.1", only: :test},
+      {:membrane_ivf_plugin, "0.4.1", only: :test},
       {:ex_doc, "~> 0.24", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.4", only: :dev, runtime: false}
@@ -54,7 +55,7 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
   defp package do
     [
       maintainers: ["Membrane Team"],
-      licenses: ["Apache 2.0"],
+      licenses: ["Apache-2.0"],
       links: %{
         "GitHub" => @github_url,
         "Membrane Framework Homepage" => "https://membraneframework.org"

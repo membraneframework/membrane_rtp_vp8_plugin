@@ -6,7 +6,7 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
   alias Membrane.Buffer
 
   @doc """
-  Two RTP buffers that adds up to one VP9 frame
+  Two RTP buffers that adds up to one VP8 frame
   1:
          X R N S R  PID
         +-+-+-+-+-+-----+
