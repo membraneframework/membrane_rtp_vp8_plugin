@@ -15,7 +15,7 @@ The package can be installed by adding `membrane_rtp_vp8_plugin` to your list of
 ```elixir
 def deps do
   [
-    {:membrane_rtp_vp8_plugin, "~> 0.4.0"}
+	{:membrane_rtp_vp8_plugin, "~> 0.5.0"}
   ]
 end
 ```
