@@ -41,7 +41,7 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
       {:membrane_vp8_format, "~> 0.4.0"},
       {:membrane_file_plugin, "~> 0.12.0"},
       {:membrane_rtp_format,
-      github: "membraneframework/membrane_rtp_format", branch: "support-telemetry"},
+       github: "membraneframework/membrane_rtp_format", branch: "support-telemetry"},
       {:membrane_rtp_plugin,
        github: "membraneframework/membrane_rtp_plugin", branch: "support-telemetry-2", only: :test},
       {:ex_libsrtp, "~> 0.4.0", only: :test},
