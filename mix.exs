@@ -38,10 +38,10 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
   defp deps do
     [
       {:membrane_core, "~> 0.10.0"},
-      {:membrane_rtp_format, "~> 0.4.0"},
       {:membrane_vp8_format, "~> 0.4.0"},
       {:membrane_file_plugin, "~> 0.12.0"},
-      {:membrane_rtp_plugin, "~> 0.13.0", only: :test},
+      {:membrane_rtp_format, github: "membraneframework/membrane_rtp_format"},
+      {:membrane_rtp_plugin, github: "membraneframework/membrane_rtp_plugin", only: :test},
       {:ex_libsrtp, "~> 0.4.0", only: :test},
       {:membrane_pcap_plugin,
        github: "membraneframework/membrane_pcap_plugin", tag: "v0.6.1", only: :test},

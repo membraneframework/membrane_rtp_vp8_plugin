@@ -21,4 +21,17 @@ defmodule Membrane.RTP.VP8.Utils do
       _err -> false
     end
   end
+
+  @doc """
+  Checks whether RTP payload contains new frame.
+  """
+  @spec is_new_frame(binary()) :: boolean()
+  def is_new_frame(rtp_payload) do
+    with {:ok, {payload_descriptor, _payload}} <-
+           Membrane.RTP.VP8.PayloadDescriptor.parse_payload_descriptor(rtp_payload) do
+      payload_descriptor.s == 1 and payload_descriptor.partition_index == 0
+    else
+      _err -> false
+    end
+  end
 end
