@@ -1,7 +1,7 @@
 defmodule Membrane.RTP.VP8.Plugin.Mixfile do
   use Mix.Project
 
-  @version "0.5.0"
+  @version "0.6.0"
   @github_url "https://github.com/membraneframework/membrane_rtp_vp8_plugin"
 
   def project do
@@ -40,8 +40,8 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
       {:membrane_core, "~> 0.10.0"},
       {:membrane_vp8_format, "~> 0.4.0"},
       {:membrane_file_plugin, "~> 0.12.0"},
-      {:membrane_rtp_format, github: "membraneframework/membrane_rtp_format"},
-      {:membrane_rtp_plugin, github: "membraneframework/membrane_rtp_plugin", only: :test},
+      {:membrane_rtp_format, "~> 0.5.0"},
+      {:membrane_rtp_plugin, "~> 0.14.0", only: :test},
       {:ex_libsrtp, "~> 0.4.0", only: :test},
       {:membrane_pcap_plugin,
        github: "membraneframework/membrane_pcap_plugin", tag: "v0.6.1", only: :test},
