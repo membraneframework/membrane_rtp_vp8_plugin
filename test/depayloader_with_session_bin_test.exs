@@ -3,9 +3,9 @@ defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
 
   import Membrane.Testing.Assertions
 
-  alias Membrane.Testing
-  alias Membrane.RTP
   alias Membrane.Element.IVF
+  alias Membrane.RTP
+  alias Membrane.Testing
 
   @results_dir "./test/results"
   @ivf_result_file @results_dir <> "/result.ivf"

@@ -1,9 +1,9 @@
 defmodule Membrane.RTP.VP8.PayloaderTest do
   use ExUnit.Case
 
-  alias Membrane.RTP.VP8.Payloader
-  alias Membrane.RTP.VP8.PayloadDescriptor
   alias Membrane.Buffer
+  alias Membrane.RTP.VP8.PayloadDescriptor
+  alias Membrane.RTP.VP8.Payloader
 
   test "fragmentation not required" do
     input_payload = <<1, 2, 3>>
