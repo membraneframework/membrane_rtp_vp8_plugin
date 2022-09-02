@@ -1,7 +1,7 @@
 defmodule Membrane.RTP.VP8.Plugin.App do
   @moduledoc false
   use Application
-  alias Membrane.RTP.{VP8, PayloadFormat}
+  alias Membrane.RTP.{PayloadFormat, VP8}
 
   @impl true
   def start(_type, _args) do

@@ -1,9 +1,9 @@
 defmodule Membrane.RTP.VP8.DepayloaderTest do
   use ExUnit.Case
 
+  alias Membrane.Buffer
   alias Membrane.RTP.VP8.Depayloader
   alias Membrane.RTP.VP8.Depayloader.State
-  alias Membrane.Buffer
 
   @doc """
   Two RTP buffers that adds up to one VP8 frame

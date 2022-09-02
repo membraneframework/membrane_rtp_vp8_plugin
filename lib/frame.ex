@@ -5,8 +5,8 @@ defmodule Membrane.RTP.VP8.Frame do
   """
 
   alias Membrane.Buffer
-  alias Membrane.RTP.VP8.PayloadDescriptor
   alias Membrane.RTP.VP8.Depayloader
+  alias Membrane.RTP.VP8.PayloadDescriptor
 
   @type t :: %__MODULE__{
           fragments: [binary()],
