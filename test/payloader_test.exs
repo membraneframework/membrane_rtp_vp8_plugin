@@ -14,20 +14,19 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
 
     expected_output_payload = payload_descriptor <> input_payload
 
-    {:ok, payloader_state} = Payloader.handle_init(%Payloader{max_payload_size: 3})
+    {[], payloader_state} = Payloader.handle_init(nil, %Payloader{max_payload_size: 3})
 
-    assert {{:ok,
-             [
-               buffer:
-                 {:output,
-                  [
-                    %Buffer{
-                      metadata: %{rtp: %{marker: true}},
-                      payload: expected_output_payload
-                    }
-                  ]},
-               redemand: :output
-             ]},
+    assert {[
+              buffer:
+                {:output,
+                 [
+                   %Buffer{
+                     metadata: %{rtp: %{marker: true}},
+                     payload: expected_output_payload
+                   }
+                 ]},
+              redemand: :output
+            ],
             payloader_state} ==
              Payloader.handle_process(:input, input_buffer, nil, payloader_state)
   end
@@ -42,28 +41,27 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
     following_descriptor =
       %PayloadDescriptor{x: 0, n: 0, s: 0, partition_index: 0} |> PayloadDescriptor.serialize()
 
-    {:ok, payloader_state} = Payloader.handle_init(%Payloader{max_payload_size: 3})
+    {[], payloader_state} = Payloader.handle_init(nil, %Payloader{max_payload_size: 3})
 
-    assert {{:ok,
-             [
-               buffer:
-                 {:output,
-                  [
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload: first_descriptor <> <<1, 2, 3>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload: following_descriptor <> <<4, 5, 6>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: true}},
-                      payload: following_descriptor <> <<7, 8, 9>>
-                    }
-                  ]},
-               redemand: :output
-             ]},
+    assert {[
+              buffer:
+                {:output,
+                 [
+                   %Buffer{
+                     metadata: %{rtp: %{marker: false}},
+                     payload: first_descriptor <> <<1, 2, 3>>
+                   },
+                   %Buffer{
+                     metadata: %{rtp: %{marker: false}},
+                     payload: following_descriptor <> <<4, 5, 6>>
+                   },
+                   %Buffer{
+                     metadata: %{rtp: %{marker: true}},
+                     payload: following_descriptor <> <<7, 8, 9>>
+                   }
+                 ]},
+              redemand: :output
+            ],
             payloader_state} ==
              Payloader.handle_process(:input, input_buffer, nil, payloader_state)
   end
@@ -78,32 +76,31 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
     following_descriptor =
       %PayloadDescriptor{x: 0, n: 0, s: 0, partition_index: 0} |> PayloadDescriptor.serialize()
 
-    {:ok, payloader_state} = Payloader.handle_init(%Payloader{max_payload_size: 3})
+    {[], payloader_state} = Payloader.handle_init(nil, %Payloader{max_payload_size: 3})
 
-    assert {{:ok,
-             [
-               buffer:
-                 {:output,
-                  [
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload: first_descriptor <> <<1, 2, 3>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload: following_descriptor <> <<4, 5, 6>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: false}},
-                      payload: following_descriptor <> <<7, 8, 9>>
-                    },
-                    %Buffer{
-                      metadata: %{rtp: %{marker: true}},
-                      payload: following_descriptor <> <<10, 11>>
-                    }
-                  ]},
-               redemand: :output
-             ]},
+    assert {[
+              buffer:
+                {:output,
+                 [
+                   %Buffer{
+                     metadata: %{rtp: %{marker: false}},
+                     payload: first_descriptor <> <<1, 2, 3>>
+                   },
+                   %Buffer{
+                     metadata: %{rtp: %{marker: false}},
+                     payload: following_descriptor <> <<4, 5, 6>>
+                   },
+                   %Buffer{
+                     metadata: %{rtp: %{marker: false}},
+                     payload: following_descriptor <> <<7, 8, 9>>
+                   },
+                   %Buffer{
+                     metadata: %{rtp: %{marker: true}},
+                     payload: following_descriptor <> <<10, 11>>
+                   }
+                 ]},
+              redemand: :output
+            ],
             payloader_state} ==
              Payloader.handle_process(:input, input_buffer, nil, payloader_state)
   end

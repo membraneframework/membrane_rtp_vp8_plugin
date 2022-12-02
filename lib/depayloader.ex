@@ -14,9 +14,11 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
   @type sequence_number :: 0..65_535
 
-  def_output_pad :output, caps: {RemoteStream, content_format: VP8, type: :packetized}
+  def_output_pad :output,
+    accepted_format: %RemoteStream{content_format: VP8, type: :packetized},
+    demand_mode: :auto
 
-  def_input_pad :input, caps: RTP, demand_unit: :buffers
+  def_input_pad :input, accepted_format: RTP, demand_mode: :auto
 
   defmodule State do
     @moduledoc false
@@ -29,36 +31,31 @@ defmodule Membrane.RTP.VP8.Depayloader do
   end
 
   @impl true
-  def handle_init(_options), do: {:ok, %State{}}
+  def handle_init(_ctx, _options), do: {[], %State{}}
 
   @impl true
-  def handle_caps(:input, _caps, _context, state) do
-    caps = %RemoteStream{content_format: VP8, type: :packetized}
-    {{:ok, caps: {:output, caps}}, state}
+  def handle_stream_format(:input, _format, _context, state) do
+    stream_format = %RemoteStream{content_format: VP8, type: :packetized}
+    {[stream_format: {:output, stream_format}], state}
   end
 
   @impl true
-  def handle_demand(:output, size, :buffers, _ctx, state),
-    do: {{:ok, demand: {:input, size}}, state}
-
-  @impl true
   def handle_event(:input, %Discontinuity{} = event, _ctx, state),
-    do: {{:ok, forward: event}, %State{state | frame_acc: %Frame{}}}
+    do: {[forward: event], %State{state | frame_acc: %Frame{}}}
 
   @impl true
   def handle_end_of_stream(:input, _ctx, %State{first_buffer: nil} = state) do
-    {{:ok, end_of_stream: :output}, state}
+    {[end_of_stream: :output], state}
   end
 
   @impl true
   def handle_end_of_stream(:input, _ctx, state) do
     {frame, _acc} = Frame.flush(state.frame_acc)
 
-    {{:ok,
-      [
-        buffer: {:output, %Buffer{state.first_buffer | payload: frame}},
-        end_of_stream: :output
-      ]}, %State{}}
+    {[
+       buffer: {:output, %Buffer{state.first_buffer | payload: frame}},
+       end_of_stream: :output
+     ], %State{}}
   end
 
   @impl true
@@ -66,22 +63,22 @@ defmodule Membrane.RTP.VP8.Depayloader do
     state = %{state | first_buffer: state.first_buffer || buffer}
 
     case parse_buffer(buffer, state) do
-      {{:ok, actions}, new_state} ->
-        {{:ok, actions ++ [redemand: :output]}, new_state}
+      {:ok, actions, new_state} ->
+        {actions, new_state}
 
       {:error, reason} ->
         log_malformed_buffer(buffer, reason)
-        {{:ok, redemand: :output}, %State{}}
+        {[], %State{}}
     end
   end
 
   defp parse_buffer(buffer, state) do
     case Frame.parse(buffer, state.frame_acc) do
       {:ok, :incomplete, acc} ->
-        {{:ok, []}, %State{state | frame_acc: acc}}
+        {:ok, [], %State{state | frame_acc: acc}}
 
       {:ok, frame, acc} ->
-        {{:ok, [buffer: {:output, %{state.first_buffer | payload: frame}}]},
+        {:ok, [buffer: {:output, %{state.first_buffer | payload: frame}}],
          %State{state | frame_acc: acc, first_buffer: buffer}}
 
       {:error, _} = error ->
