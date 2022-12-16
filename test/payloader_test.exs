@@ -24,8 +24,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                      metadata: %{rtp: %{marker: true}},
                      payload: expected_output_payload
                    }
-                 ]},
-              redemand: :output
+                 ]}
             ],
             payloader_state} ==
              Payloader.handle_process(:input, input_buffer, nil, payloader_state)
@@ -59,8 +58,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                      metadata: %{rtp: %{marker: true}},
                      payload: following_descriptor <> <<7, 8, 9>>
                    }
-                 ]},
-              redemand: :output
+                 ]}
             ],
             payloader_state} ==
              Payloader.handle_process(:input, input_buffer, nil, payloader_state)
@@ -98,8 +96,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                      metadata: %{rtp: %{marker: true}},
                      payload: following_descriptor <> <<10, 11>>
                    }
-                 ]},
-              redemand: :output
+                 ]}
             ],
             payloader_state} ==
              Payloader.handle_process(:input, input_buffer, nil, payloader_state)

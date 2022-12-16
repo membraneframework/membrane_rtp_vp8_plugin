@@ -43,7 +43,7 @@ defmodule Membrane.RTP.VP8.Payloader do
 
   @impl true
   def handle_stream_format(:input, _format, _context, state) do
-    {:ok, state}
+    {[], state}
   end
 
   @impl true
@@ -68,13 +68,14 @@ defmodule Membrane.RTP.VP8.Payloader do
       |> add_descriptors()
       |> Enum.map(
         &%Buffer{
-          metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: false}),
-          payload: &1
+          buffer
+          | metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: false}),
+            payload: &1
         }
       )
       |> List.update_at(-1, &Bunch.Struct.put_in(&1, [:metadata, :rtp, :marker], true))
 
-    {[buffer: {:output, buffers}, redemand: :output], state}
+    {[buffer: {:output, buffers}], state}
   end
 
   defp add_descriptors({chunks, last_chunk}) do
