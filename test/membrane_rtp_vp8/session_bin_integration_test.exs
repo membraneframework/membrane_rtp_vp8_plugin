@@ -1,14 +1,14 @@
-defmodule Membrane.RTP.VP8.DepayloaderWithSessionBinTest do
+defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
   use ExUnit.Case
 
   import Membrane.ChildrenSpec
   import Membrane.Testing.Assertions
 
+  require Membrane.Pad, as: Pad
+
   alias Membrane.Element.IVF
   alias Membrane.RTP
   alias Membrane.Testing
-
-  require Membrane.Pad, as: Pad
 
   @results_dir "./test/results"
   @ivf_result_file @results_dir <> "/result.ivf"
