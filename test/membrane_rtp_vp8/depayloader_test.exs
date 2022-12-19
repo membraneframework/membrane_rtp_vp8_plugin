@@ -35,24 +35,23 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
       metadata: %{rtp: %{sequence_number: 14_451, timestamp: 30}}
     }
 
-    {:ok, depayloader_state} = Depayloader.handle_init([])
+    {[], depayloader_state} = Depayloader.handle_init(nil, [])
 
-    assert {{:ok, [redemand: :output]}, depayloader_state} =
+    assert {[], depayloader_state} =
              Depayloader.handle_process(:input, buffer_1, nil, depayloader_state)
 
-    assert {{:ok, [redemand: :output]}, depayloader_state} =
+    assert {[], depayloader_state} =
              Depayloader.handle_process(:input, buffer_2, nil, depayloader_state)
 
-    assert {{:ok,
-             [
-               buffer:
-                 {:output,
-                  %Buffer{
-                    payload: <<170, 171, 172, 173>>,
-                    metadata: %{rtp: %{sequence_number: 14_450, timestamp: 30}}
-                  }},
-               end_of_stream: :output
-             ]}, %State{}} == Depayloader.handle_end_of_stream(:input, nil, depayloader_state)
+    assert {[
+              buffer:
+                {:output,
+                 %Buffer{
+                   payload: <<170, 171, 172, 173>>,
+                   metadata: %{rtp: %{sequence_number: 14_450, timestamp: 30}}
+                 }},
+              end_of_stream: :output
+            ], %State{}} == Depayloader.handle_end_of_stream(:input, nil, depayloader_state)
   end
 
   @doc """
@@ -72,21 +71,20 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
       metadata: %{rtp: %{sequence_number: 14_450, timestamp: 30}}
     }
 
-    {:ok, depayloader_state} = Depayloader.handle_init([])
+    {[], depayloader_state} = Depayloader.handle_init(nil, [])
 
-    assert {{:ok, [redemand: :output]}, depayloader_state} =
+    assert {[], depayloader_state} =
              Depayloader.handle_process(:input, buffer, nil, depayloader_state)
 
-    assert {{:ok,
-             [
-               buffer:
-                 {:output,
-                  %Buffer{
-                    metadata: %{rtp: %{sequence_number: 14_450}},
-                    payload: <<170, 171>>
-                  }},
-               end_of_stream: :output
-             ]}, %State{}} = Depayloader.handle_end_of_stream(:input, nil, depayloader_state)
+    assert {[
+              buffer:
+                {:output,
+                 %Buffer{
+                   metadata: %{rtp: %{sequence_number: 14_450}},
+                   payload: <<170, 171>>
+                 }},
+              end_of_stream: :output
+            ], %State{}} = Depayloader.handle_end_of_stream(:input, nil, depayloader_state)
   end
 
   @doc """
@@ -119,13 +117,12 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
       metadata: %{rtp: %{sequence_number: 14_452, timestamp: 30}}
     }
 
-    {:ok, depayloader_state} = Depayloader.handle_init([])
+    {[], depayloader_state} = Depayloader.handle_init(nil, [])
 
-    assert {{:ok, [redemand: :output]}, depayloader_state} =
+    assert {[], depayloader_state} =
              Depayloader.handle_process(:input, buffer_1, nil, depayloader_state)
 
-    assert {{:ok, redemand: :output}, %State{}} =
-             Depayloader.handle_process(:input, buffer_2, nil, depayloader_state)
+    assert {[], %State{}} = Depayloader.handle_process(:input, buffer_2, nil, depayloader_state)
   end
 
   @doc """
@@ -158,12 +155,11 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
       metadata: %{rtp: %{sequence_number: 14_451, timestamp: 31}}
     }
 
-    {:ok, depayloader_state} = Depayloader.handle_init([])
+    {[], depayloader_state} = Depayloader.handle_init(nil, [])
 
-    assert {{:ok, [redemand: :output]}, depayloader_state} =
+    assert {[], depayloader_state} =
              Depayloader.handle_process(:input, buffer_1, nil, depayloader_state)
 
-    assert {{:ok, redemand: :output}, %State{}} =
-             Depayloader.handle_process(:input, buffer_2, nil, depayloader_state)
+    assert {[], %State{}} = Depayloader.handle_process(:input, buffer_2, nil, depayloader_state)
   end
 end

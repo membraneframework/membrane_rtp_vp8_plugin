@@ -32,35 +32,23 @@ defmodule Membrane.RTP.VP8.Payloader do
                 """
               ]
 
-  def_output_pad :output, caps: RTP
+  def_output_pad :output, accepted_format: RTP, demand_mode: :auto
 
   def_input_pad :input,
-    caps: {RemoteStream, content_format: VP8, type: :packetized},
-    demand_unit: :buffers
+    accepted_format: %RemoteStream{content_format: VP8, type: :packetized},
+    demand_mode: :auto
 
-  defmodule State do
-    @moduledoc false
-    defstruct [
-      :max_payload_size
-    ]
+  @impl true
+  def handle_init(_ctx, options), do: {[], Map.from_struct(options)}
+
+  @impl true
+  def handle_stream_format(:input, _format, _context, state) do
+    {[], state}
   end
 
   @impl true
-  def handle_init(options), do: {:ok, Map.merge(%State{}, Map.from_struct(options))}
-
-  @impl true
-  def handle_caps(:input, _caps, _context, state) do
-    {:ok, state}
-  end
-
-  @impl true
-  def handle_prepared_to_playing(_ctx, state) do
-    {{:ok, caps: {:output, %RTP{}}}, state}
-  end
-
-  @impl true
-  def handle_demand(:output, size, :buffers, _ctx, state) do
-    {{:ok, demand: {:input, size}}, state}
+  def handle_playing(_ctx, state) do
+    {[stream_format: {:output, %RTP{}}], state}
   end
 
   @impl true
@@ -80,13 +68,14 @@ defmodule Membrane.RTP.VP8.Payloader do
       |> add_descriptors()
       |> Enum.map(
         &%Buffer{
-          metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: false}),
-          payload: &1
+          buffer
+          | metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: false}),
+            payload: &1
         }
       )
       |> List.update_at(-1, &Bunch.Struct.put_in(&1, [:metadata, :rtp, :marker], true))
 
-    {{:ok, [buffer: {:output, buffers}, redemand: :output]}, state}
+    {[buffer: {:output, buffers}], state}
   end
 
   defp add_descriptors({chunks, last_chunk}) do
