@@ -15,7 +15,7 @@ defmodule Membrane.RTP.VP8.Utils do
 
     with {:ok, {payload_descriptor, payload}} <-
            Membrane.RTP.VP8.PayloadDescriptor.parse_payload_descriptor(rtp_payload),
-         <<_size0::3, _h::1, _ver::3, p::1, _size1::8, _size2::8, _rest::binary()>> <- payload do
+         <<_size0::3, _h::1, _ver::3, p::1, _size1::8, _size2::8, _rest::binary>> <- payload do
       payload_descriptor.s == 1 and payload_descriptor.partition_index == 0 and p == 0
     else
       _err -> false

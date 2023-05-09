@@ -103,9 +103,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
   def parse_payload_descriptor(payload) when byte_size(payload) <= 1,
     do: {:error, :payload_too_short}
 
-  def parse_payload_descriptor(
-        <<x::1, 0::1, n::1, s::1, 0::1, partition_index::3, rest::binary()>>
-      )
+  def parse_payload_descriptor(<<x::1, 0::1, n::1, s::1, 0::1, partition_index::3, rest::binary>>)
       when byte_size(rest) > 0 do
     descriptor_acc = %__MODULE__{x: x, n: n, s: s, partition_index: partition_index}
 
@@ -124,7 +122,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
   defp get_extended_control_bits(%__MODULE__{x: 0} = descriptor_acc, rest),
     do: {:ok, {descriptor_acc, rest}}
 
-  defp get_extended_control_bits(_descriptor_acc, <<_iltk::4, rsv::4, _rest::binary()>>)
+  defp get_extended_control_bits(_descriptor_acc, <<_iltk::4, rsv::4, _rest::binary>>)
        when rsv > 0,
        do: {:error, :malformed_data}
 
@@ -142,11 +140,11 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
 
   defp get_picture_id(%__MODULE__{i: 0} = descriptor_acc, rest), do: {:ok, {descriptor_acc, rest}}
 
-  defp get_picture_id(descriptor_acc, <<0::1, picture_id::7, rest::binary()>>)
+  defp get_picture_id(descriptor_acc, <<0::1, picture_id::7, rest::binary>>)
        when byte_size(rest) > 0,
        do: {:ok, {%__MODULE__{descriptor_acc | m: 0, picture_id: picture_id}, rest}}
 
-  defp get_picture_id(descriptor_acc, <<1::1, picture_id::15, rest::binary()>>)
+  defp get_picture_id(descriptor_acc, <<1::1, picture_id::15, rest::binary>>)
        when byte_size(rest) > 0,
        do: {:ok, {%__MODULE__{descriptor_acc | m: 1, picture_id: picture_id}, rest}}
 
@@ -155,7 +153,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
   defp get_temporal_level_zero_index(%__MODULE__{l: 0} = descriptor_acc, rest),
     do: {:ok, {descriptor_acc, rest}}
 
-  defp get_temporal_level_zero_index(descriptor_acc, <<tl0picidx, rest::binary()>>)
+  defp get_temporal_level_zero_index(descriptor_acc, <<tl0picidx, rest::binary>>)
        when byte_size(rest) > 0,
        do: {:ok, {%__MODULE__{descriptor_acc | tl0picidx: tl0picidx}, rest}}
 
@@ -165,7 +163,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
         {:error, :payload_to_short}
 
       _greater_than_one ->
-        <<tid::2, y::1, keyidx::5, rest::binary()>> = rest
+        <<tid::2, y::1, keyidx::5, rest::binary>> = rest
         {:ok, {%__MODULE__{descriptor_acc | tid: tid, y: y, keyidx: keyidx}, rest}}
     end
   end
