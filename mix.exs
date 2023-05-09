@@ -47,7 +47,7 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
 
       # Test deps
       {:membrane_file_plugin, "~> 0.13.1", only: :test, runtime: false},
-      {:membrane_rtp_plugin, "~> 0.22.0", only: :test},
+      {:membrane_rtp_plugin, "~> 0.21.0", only: :test},
       {:ex_libsrtp, ">= 0.0.0", only: :test},
       {:membrane_pcap_plugin,
        github: "membraneframework-labs/membrane_pcap_plugin", tag: "v0.7.0", only: :test},
