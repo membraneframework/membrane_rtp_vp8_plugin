@@ -10,10 +10,6 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
   alias Membrane.RTP
   alias Membrane.Testing
 
-  @results_dir "./test/results"
-  @ivf_result_file @results_dir <> "/result.ivf"
-  @ivf_reference_file "./test/fixtures/input_vp8.ivf"
-
   @rtp_input %{
     pcap: "test/fixtures/input_vp8.pcap",
     video: %{ssrc: 1_660_289_535, frames_n: 300, width: 1080, height: 720}
@@ -21,7 +17,8 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
 
   @fmt_mapping %{96 => {:VP8, 90_000}}
 
-  test "depayloading rtp with vp8" do
+  @tag :tmp_dir
+  test "depayloading rtp with vp8", %{tmp_dir: results_dir} do
     defmodule TestPipeline do
       use Membrane.Pipeline
 
@@ -61,16 +58,15 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
       end
     end
 
-    if !File.exists?(@results_dir) do
-      File.mkdir!(@results_dir)
-    end
+    ivf_result_file = results_dir <> "/result.ivf"
+    ivf_reference_file = "./test/fixtures/input_vp8.ivf"
 
     pipeline =
       Testing.Pipeline.start_link_supervised!(
         module: TestPipeline,
         custom_args: %{
           input: @rtp_input,
-          result_file: @ivf_result_file,
+          result_file: ivf_result_file,
           fmt_mapping: @fmt_mapping
         }
       )
@@ -81,7 +77,7 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
 
     assert_end_of_stream(pipeline, {:file_sink, ^video_ssrc}, :input, 4000)
 
-    assert File.read!(@ivf_result_file) == File.read!(@ivf_reference_file)
+    assert File.read!(ivf_result_file) == File.read!(ivf_reference_file)
 
     Testing.Pipeline.terminate(pipeline, blocking?: true)
   end
@@ -97,11 +93,15 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
     end
   end
 
-  test "payloading and depayloading back" do
+  @tag :tmp_dir
+  test "payloading and depayloading back", %{tmp_dir: results_dir} do
+    ivf_result_file = results_dir <> "/result.ivf"
+    ivf_reference_file = "./test/fixtures/input_vp8.ivf"
+
     pipeline =
       Testing.Pipeline.start_link_supervised!(
         structure:
-          child(:source, %Membrane.File.Source{location: @ivf_reference_file})
+          child(:source, %Membrane.File.Source{location: ivf_reference_file})
           |> child(:deserializer, IVF.Deserializer)
           |> via_in(Pad.ref(:input, 1234), options: [payloader: RTP.VP8.Payloader])
           |> child(:session_bin, %RTP.SessionBin{fmt_mapping: @fmt_mapping})
@@ -124,13 +124,13 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
           scale: 1,
           rate: 30
         })
-        |> child(:sink, %Membrane.File.Sink{location: @ivf_result_file})
+        |> child(:sink, %Membrane.File.Sink{location: ivf_result_file})
       ]
     )
 
     assert_end_of_stream(pipeline, :sink, :input, 4000)
 
-    assert File.read!(@ivf_result_file) == File.read!(@ivf_reference_file)
+    assert File.read!(ivf_result_file) == File.read!(ivf_reference_file)
     Testing.Pipeline.terminate(pipeline, blocking?: true)
   end
 end
