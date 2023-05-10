@@ -1,6 +1,5 @@
 defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
   use ExUnit.Case
-  @moduletag :tmp_dir
 
   import Membrane.ChildrenSpec
   import Membrane.Testing.Assertions
@@ -10,6 +9,8 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
   alias Membrane.Element.IVF
   alias Membrane.RTP
   alias Membrane.Testing
+
+  @moduletag :tmp_dir
 
   @rtp_input %{
     pcap: "test/fixtures/input_vp8.pcap",
