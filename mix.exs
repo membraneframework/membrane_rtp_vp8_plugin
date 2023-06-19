@@ -38,7 +38,7 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
 
   defp deps do
     [
-      {:membrane_core, "~> 0.11.2"},
+      {:membrane_core, "~> 0.12.1"},
       {:membrane_vp8_format, "~> 0.4.0"},
       {:membrane_rtp_format, "~> 0.7.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
@@ -50,7 +50,7 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
       {:membrane_rtp_plugin, "~> 0.23.0", only: :test},
       {:ex_libsrtp, ">= 0.0.0", only: :test},
       {:membrane_pcap_plugin,
-       github: "membraneframework-labs/membrane_pcap_plugin", tag: "v0.7.0", only: :test},
+       github: "membraneframework-labs/membrane_pcap_plugin", tag: "v0.8.0", only: :test},
       {:membrane_ivf_plugin, "~> 0.6.0", only: :test}
     ]
   end
