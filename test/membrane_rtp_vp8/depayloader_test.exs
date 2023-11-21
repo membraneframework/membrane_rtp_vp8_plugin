@@ -38,10 +38,10 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
     {[], depayloader_state} = Depayloader.handle_init(nil, [])
 
     assert {[], depayloader_state} =
-             Depayloader.handle_process(:input, buffer_1, nil, depayloader_state)
+             Depayloader.handle_buffer(:input, buffer_1, nil, depayloader_state)
 
     assert {[], depayloader_state} =
-             Depayloader.handle_process(:input, buffer_2, nil, depayloader_state)
+             Depayloader.handle_buffer(:input, buffer_2, nil, depayloader_state)
 
     assert {[
               buffer:
@@ -74,7 +74,7 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
     {[], depayloader_state} = Depayloader.handle_init(nil, [])
 
     assert {[], depayloader_state} =
-             Depayloader.handle_process(:input, buffer, nil, depayloader_state)
+             Depayloader.handle_buffer(:input, buffer, nil, depayloader_state)
 
     assert {[
               buffer:
@@ -120,9 +120,9 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
     {[], depayloader_state} = Depayloader.handle_init(nil, [])
 
     assert {[], depayloader_state} =
-             Depayloader.handle_process(:input, buffer_1, nil, depayloader_state)
+             Depayloader.handle_buffer(:input, buffer_1, nil, depayloader_state)
 
-    assert {[], %State{}} = Depayloader.handle_process(:input, buffer_2, nil, depayloader_state)
+    assert {[], %State{}} = Depayloader.handle_buffer(:input, buffer_2, nil, depayloader_state)
   end
 
   @doc """
@@ -158,8 +158,8 @@ defmodule Membrane.RTP.VP8.DepayloaderTest do
     {[], depayloader_state} = Depayloader.handle_init(nil, [])
 
     assert {[], depayloader_state} =
-             Depayloader.handle_process(:input, buffer_1, nil, depayloader_state)
+             Depayloader.handle_buffer(:input, buffer_1, nil, depayloader_state)
 
-    assert {[], %State{}} = Depayloader.handle_process(:input, buffer_2, nil, depayloader_state)
+    assert {[], %State{}} = Depayloader.handle_buffer(:input, buffer_2, nil, depayloader_state)
   end
 end
