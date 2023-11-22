@@ -15,14 +15,14 @@ The package can be installed by adding `membrane_rtp_vp8_plugin` to your list of
 ```elixir
 def deps do
   [
-    {:membrane_rtp_vp8_plugin, "~> 0.8.0"}
+	  {:membrane_rtp_vp8_plugin, "~> 0.9.0"}
   ]
 end
 ```
 
 ## Usage
 
-This plugin registers default payloader and depayloader for VP8 [RTP payload format](https://hexdocs.pm/membrane_rtp_format/Membrane.RTP.PayloadFormat.html)
+This plugin registers the default payloader and depayloader for VP8 [RTP payload format](https://hexdocs.pm/membrane_rtp_format/Membrane.RTP.PayloadFormat.html)
 and thus can be automatically used by [Membrane RTP plugin](https://hexdocs.pm/membrane_rtp_plugin) whenever added to dependencies.
 Of course, it can be manually linked in a custom pipeline too.
 

@@ -32,11 +32,8 @@ defmodule Membrane.RTP.VP8.Payloader do
                 """
               ]
 
-  def_output_pad :output, accepted_format: RTP, demand_mode: :auto
-
-  def_input_pad :input,
-    accepted_format: %RemoteStream{content_format: VP8, type: :packetized},
-    demand_mode: :auto
+  def_input_pad :input, accepted_format: %RemoteStream{content_format: VP8, type: :packetized}
+  def_output_pad :output, accepted_format: RTP
 
   @impl true
   def handle_init(_ctx, options), do: {[], Map.from_struct(options)}
@@ -52,12 +49,7 @@ defmodule Membrane.RTP.VP8.Payloader do
   end
 
   @impl true
-  def handle_process(
-        :input,
-        buffer,
-        _ctx,
-        state
-      ) do
+  def handle_buffer(:input, buffer, _ctx, state) do
     %Buffer{metadata: metadata, payload: payload} = buffer
     chunk_count = ceil(byte_size(payload) / state.max_payload_size)
     max_chunk_size = ceil(byte_size(payload) / chunk_count)

@@ -14,11 +14,8 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
   @type sequence_number :: 0..65_535
 
-  def_output_pad :output,
-    accepted_format: %RemoteStream{content_format: VP8, type: :packetized},
-    demand_mode: :auto
-
-  def_input_pad :input, accepted_format: RTP, demand_mode: :auto
+  def_input_pad :input, accepted_format: RTP
+  def_output_pad :output, accepted_format: %RemoteStream{content_format: VP8, type: :packetized}
 
   defmodule State do
     @moduledoc false
@@ -59,7 +56,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
   end
 
   @impl true
-  def handle_process(:input, buffer, _ctx, state) do
+  def handle_buffer(:input, buffer, _ctx, state) do
     state = %{state | first_buffer: state.first_buffer || buffer}
 
     case parse_buffer(buffer, state) do
@@ -87,7 +84,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
   end
 
   defp log_malformed_buffer(packet, reason) do
-    Membrane.Logger.warn("""
+    Membrane.Logger.warning("""
     An error occurred while parsing RTP packet.
     Reason: #{reason}
     Packet: #{inspect(packet, limit: :infinity)}

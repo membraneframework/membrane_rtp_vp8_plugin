@@ -33,8 +33,7 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
           |> via_in(:rtp_input)
           |> child(:rtp, %RTP.SessionBin{fmt_mapping: options.fmt_mapping})
 
-        {[spec: spec, playback: :playing],
-         %{result_file: options.result_file, video: options.input.video}}
+        {[spec: spec], %{result_file: options.result_file, video: options.input.video}}
       end
 
       @impl true
@@ -82,16 +81,16 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
 
     assert File.read!(result_file) == File.read!(@ivf_reference_file)
 
-    Testing.Pipeline.terminate(pipeline, blocking?: true)
+    Testing.Pipeline.terminate(pipeline)
   end
 
   defmodule NoopFilter do
     use Membrane.Filter
-    def_input_pad :input, accepted_format: _any, demand_mode: :auto
-    def_output_pad :output, accepted_format: _any, demand_mode: :auto
+    def_input_pad :input, accepted_format: _any
+    def_output_pad :output, accepted_format: _any
 
     @impl true
-    def handle_process(:input, buffer, _ctx, state) do
+    def handle_buffer(:input, buffer, _ctx, state) do
       {[buffer: {:output, buffer}], state}
     end
   end
@@ -99,7 +98,7 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
   test "payloading and depayloading back", %{tmp_dir: tmp_dir} do
     pipeline =
       Testing.Pipeline.start_link_supervised!(
-        structure:
+        spec:
           child(:source, %Membrane.File.Source{location: @ivf_reference_file})
           |> child(:deserializer, IVF.Deserializer)
           |> via_in(Pad.ref(:input, 1234), options: [payloader: RTP.VP8.Payloader])
@@ -132,6 +131,6 @@ defmodule Membrane.RTP.VP8.SessionBinIntegrationTest do
     assert_end_of_stream(pipeline, :sink, :input, 4000)
 
     assert File.read!(result_file) == File.read!(@ivf_reference_file)
-    Testing.Pipeline.terminate(pipeline, blocking?: true)
+    Testing.Pipeline.terminate(pipeline)
   end
 end

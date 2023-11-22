@@ -27,7 +27,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                  ]}
             ],
             payloader_state} ==
-             Payloader.handle_process(:input, input_buffer, nil, payloader_state)
+             Payloader.handle_buffer(:input, input_buffer, nil, payloader_state)
   end
 
   test "three complete chunks" do
@@ -61,7 +61,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                  ]}
             ],
             payloader_state} ==
-             Payloader.handle_process(:input, input_buffer, nil, payloader_state)
+             Payloader.handle_buffer(:input, input_buffer, nil, payloader_state)
   end
 
   test "two complete chunks one incomplete" do
@@ -99,6 +99,6 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                  ]}
             ],
             payloader_state} ==
-             Payloader.handle_process(:input, input_buffer, nil, payloader_state)
+             Payloader.handle_buffer(:input, input_buffer, nil, payloader_state)
   end
 end
