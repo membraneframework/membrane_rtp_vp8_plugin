@@ -41,6 +41,9 @@ defmodule Membrane.RTP.VP8.Depayloader do
     do: {[forward: event], %State{state | frame_acc: %Frame{}}}
 
   @impl true
+  def handle_event(_pad, event, _ctx, state), do: {[forward: event], state}
+
+  @impl true
   def handle_end_of_stream(:input, _ctx, %State{first_buffer: nil} = state) do
     {[end_of_stream: :output], state}
   end

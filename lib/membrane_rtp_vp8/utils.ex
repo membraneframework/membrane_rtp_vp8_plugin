@@ -7,6 +7,8 @@ defmodule Membrane.RTP.VP8.Utils do
   Checks whether RTP payload contains VP8 keyframe.
   """
   @spec is_keyframe(binary()) :: boolean()
+  # the comment below is caused by a fact, that credo 1.7.7 forbids function names starting with `is_`
+  # credo:disable-for-next-line
   def is_keyframe(rtp_payload) do
     # RTP payload contains VP8 keyframe when P bit in VP8 payload header is set to 0
     # besides this S bit (start of VP8 partition) and PID (partition index)
@@ -26,6 +28,8 @@ defmodule Membrane.RTP.VP8.Utils do
   Checks whether RTP payload contains new frame.
   """
   @spec is_new_frame(binary()) :: boolean()
+  # the comment below is caused by a fact, that credo 1.7.7 forbids function names starting with `is_`
+  # credo:disable-for-next-line
   def is_new_frame(rtp_payload) do
     case Membrane.RTP.VP8.PayloadDescriptor.parse_payload_descriptor(rtp_payload) do
       {:ok, {payload_descriptor, _payload}} ->
