@@ -40,6 +40,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
   def handle_event(:input, %Discontinuity{} = event, _ctx, state),
     do: {[forward: event], %State{state | frame_acc: %Frame{}}}
 
+  @impl true
   def handle_event(_pad, event, _ctx, state), do: {[forward: event], state}
 
   @impl true
