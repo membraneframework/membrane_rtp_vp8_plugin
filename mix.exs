@@ -39,7 +39,7 @@ defmodule Membrane.RTP.VP8.Plugin.Mixfile do
   defp deps do
     [
       {:membrane_core, "~> 1.0"},
-      {:membrane_vp8_format, "~> 0.4.0"},
+      {:membrane_vp8_format, "~> 0.5.0"},
       {:membrane_rtp_format, "~> 0.8.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
