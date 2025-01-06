@@ -88,7 +88,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
       case {i, m} do
         {1, 0} -> <<m::1, picture_id::7>>
         {1, 1} -> <<m::1, picture_id::15>>
-        {0, _} -> <<>>
+        {0, _m} -> <<>>
       end
 
     tl0picidx = if l == 1, do: <<tl0picidx>>, else: <<>>

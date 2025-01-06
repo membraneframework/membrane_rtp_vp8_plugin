@@ -81,7 +81,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
         {:ok, [buffer: {:output, %{state.first_buffer | payload: frame}}],
          %State{state | frame_acc: acc, first_buffer: buffer}}
 
-      {:error, _} = error ->
+      {:error, _reason} = error ->
         error
     end
   end
