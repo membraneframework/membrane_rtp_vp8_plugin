@@ -32,7 +32,13 @@ defmodule Membrane.RTP.VP8.Payloader do
                 """
               ]
 
-  def_input_pad :input, accepted_format: %RemoteStream{content_format: VP8, type: :packetized}
+  def_input_pad :input,
+    accepted_format:
+      any_of(
+        %RemoteStream{content_format: VP8, type: :packetized},
+        VP8
+      )
+
   def_output_pad :output, accepted_format: RTP
 
   @impl true
