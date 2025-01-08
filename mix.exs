@@ -1,7 +1,7 @@
 defmodule Membrane.RTP.VP8.Plugin.Mixfile do
   use Mix.Project
 
-  @version "0.9.3"
+  @version "0.9.4"
   @github_url "https://github.com/membraneframework/membrane_rtp_vp8_plugin"
 
   def project do
