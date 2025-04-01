@@ -39,7 +39,7 @@ defmodule Membrane.RTP.VP8.Payloader do
         VP8
       )
 
-  def_output_pad :output, accepted_format: RTP
+  def_output_pad :output, accepted_format: %RTP{payload_format: VP8}
 
   @impl true
   def handle_init(_ctx, options), do: {[], Map.from_struct(options)}
@@ -51,7 +51,7 @@ defmodule Membrane.RTP.VP8.Payloader do
 
   @impl true
   def handle_playing(_ctx, state) do
-    {[stream_format: {:output, %RTP{}}], state}
+    {[stream_format: {:output, %RTP{payload_format: VP8}}], state}
   end
 
   @impl true
