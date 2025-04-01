@@ -8,13 +8,12 @@ defmodule Membrane.RTP.VP8.Depayloader do
   require Membrane.Logger
 
   alias Membrane.RTP.VP8.Frame
-  alias Membrane.{Buffer, RemoteStream, RTP}
+  alias Membrane.{Buffer, RemoteStream, RTP, VP8}
   alias Membrane.Event.Discontinuity
-  alias Membrane.VP8
 
   @type sequence_number :: 0..65_535
 
-  def_input_pad :input, accepted_format: RTP
+  def_input_pad :input, accepted_format: %RTP{payload_format: format} when format in [nil, VP8]
   def_output_pad :output, accepted_format: %RemoteStream{content_format: VP8, type: :packetized}
 
   defmodule State do
