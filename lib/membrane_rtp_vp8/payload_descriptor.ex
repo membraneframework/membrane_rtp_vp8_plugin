@@ -133,7 +133,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
        when byte_size(rest) > 0 do
     <<i::1, l::1, t::1, k::1, _rsv::4>> = extended_control_bits
 
-    {:ok, {%__MODULE__{descriptor_acc | i: i, l: l, t: t, k: k}, rest}}
+    {:ok, {%{descriptor_acc | i: i, l: l, t: t, k: k}, rest}}
   end
 
   defp get_extended_control_bits(_descriptor_acc, _rest), do: {:error, :payload_too_short}
@@ -142,11 +142,11 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
 
   defp get_picture_id(descriptor_acc, <<0::1, picture_id::7, rest::binary>>)
        when byte_size(rest) > 0,
-       do: {:ok, {%__MODULE__{descriptor_acc | m: 0, picture_id: picture_id}, rest}}
+       do: {:ok, {%{descriptor_acc | m: 0, picture_id: picture_id}, rest}}
 
   defp get_picture_id(descriptor_acc, <<1::1, picture_id::15, rest::binary>>)
        when byte_size(rest) > 0,
-       do: {:ok, {%__MODULE__{descriptor_acc | m: 1, picture_id: picture_id}, rest}}
+       do: {:ok, {%{descriptor_acc | m: 1, picture_id: picture_id}, rest}}
 
   defp get_picture_id(_descriptor_acc, _rest), do: {:error, :payload_too_short}
 
@@ -155,7 +155,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
 
   defp get_temporal_level_zero_index(descriptor_acc, <<tl0picidx, rest::binary>>)
        when byte_size(rest) > 0,
-       do: {:ok, {%__MODULE__{descriptor_acc | tl0picidx: tl0picidx}, rest}}
+       do: {:ok, {%{descriptor_acc | tl0picidx: tl0picidx}, rest}}
 
   defp get_tidykeyidx(%__MODULE__{t: t, k: k} = descriptor_acc, rest) when t == 1 or k == 1 do
     case byte_size(rest) do
@@ -164,7 +164,7 @@ defmodule Membrane.RTP.VP8.PayloadDescriptor do
 
       _greater_than_one ->
         <<tid::2, y::1, keyidx::5, rest::binary>> = rest
-        {:ok, {%__MODULE__{descriptor_acc | tid: tid, y: y, keyidx: keyidx}, rest}}
+        {:ok, {%{descriptor_acc | tid: tid, y: y, keyidx: keyidx}, rest}}
     end
   end
 

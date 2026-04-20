@@ -65,7 +65,7 @@ defmodule Membrane.RTP.VP8.Payloader do
       |> Bunch.Binary.chunk_every_rem(max_chunk_size)
       |> add_descriptors()
       |> Enum.map(
-        &%Buffer{
+        &%{
           buffer
           | metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: false}),
             payload: &1
