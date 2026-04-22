@@ -7,9 +7,9 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
   require Membrane.Logger
 
-  alias Membrane.RTP.VP8.Frame
   alias Membrane.{Buffer, RemoteStream, RTP, VP8}
   alias Membrane.Event.Discontinuity
+  alias Membrane.RTP.VP8.Frame
 
   @type sequence_number :: 0..65_535
 

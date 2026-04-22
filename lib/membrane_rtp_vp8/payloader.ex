@@ -5,8 +5,8 @@ defmodule Membrane.RTP.VP8.Payloader do
 
   use Membrane.Filter
 
-  alias Membrane.VP8
   alias Membrane.{Buffer, RemoteStream, RTP}
+  alias Membrane.VP8
 
   # s-bit set and partition index equal to 0
   @first_fragment_descriptor <<16>>
