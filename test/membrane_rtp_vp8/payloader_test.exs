@@ -25,8 +25,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                      payload: expected_output_payload
                    }
                  ]}
-            ],
-            payloader_state} ==
+            ], payloader_state} ==
              Payloader.handle_buffer(:input, input_buffer, nil, payloader_state)
   end
 
@@ -59,8 +58,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                      payload: following_descriptor <> <<7, 8, 9>>
                    }
                  ]}
-            ],
-            payloader_state} ==
+            ], payloader_state} ==
              Payloader.handle_buffer(:input, input_buffer, nil, payloader_state)
   end
 
@@ -97,8 +95,7 @@ defmodule Membrane.RTP.VP8.PayloaderTest do
                      payload: following_descriptor <> <<10, 11>>
                    }
                  ]}
-            ],
-            payloader_state} ==
+            ], payloader_state} ==
              Payloader.handle_buffer(:input, input_buffer, nil, payloader_state)
   end
 end

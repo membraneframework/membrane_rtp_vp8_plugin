@@ -5,8 +5,8 @@ defmodule Membrane.RTP.VP8.Payloader do
 
   use Membrane.Filter
 
-  alias Membrane.VP8
   alias Membrane.{Buffer, RemoteStream, RTP}
+  alias Membrane.VP8
 
   # s-bit set and partition index equal to 0
   @first_fragment_descriptor <<16>>
@@ -65,7 +65,7 @@ defmodule Membrane.RTP.VP8.Payloader do
       |> Bunch.Binary.chunk_every_rem(max_chunk_size)
       |> add_descriptors()
       |> Enum.map(
-        &%Buffer{
+        &%{
           buffer
           | metadata: Bunch.Struct.put_in(metadata, [:rtp], %{marker: false}),
             payload: &1

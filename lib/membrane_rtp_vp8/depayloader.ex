@@ -7,9 +7,9 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
   require Membrane.Logger
 
-  alias Membrane.RTP.VP8.Frame
   alias Membrane.{Buffer, RemoteStream, RTP, VP8}
   alias Membrane.Event.Discontinuity
+  alias Membrane.RTP.VP8.Frame
 
   @type sequence_number :: 0..65_535
 
@@ -37,7 +37,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
 
   @impl true
   def handle_event(:input, %Discontinuity{} = event, _ctx, state),
-    do: {[forward: event], %State{state | frame_acc: %Frame{}}}
+    do: {[forward: event], %{state | frame_acc: %Frame{}}}
 
   @impl true
   def handle_event(_pad, event, _ctx, state), do: {[forward: event], state}
@@ -52,7 +52,7 @@ defmodule Membrane.RTP.VP8.Depayloader do
     {frame, _acc} = Frame.flush(state.frame_acc)
 
     {[
-       buffer: {:output, %Buffer{state.first_buffer | payload: frame}},
+       buffer: {:output, %{state.first_buffer | payload: frame}},
        end_of_stream: :output
      ], %State{}}
   end
@@ -74,11 +74,11 @@ defmodule Membrane.RTP.VP8.Depayloader do
   defp parse_buffer(buffer, state) do
     case Frame.parse(buffer, state.frame_acc) do
       {:ok, :incomplete, acc} ->
-        {:ok, [], %State{state | frame_acc: acc}}
+        {:ok, [], %{state | frame_acc: acc}}
 
       {:ok, frame, acc} ->
         {:ok, [buffer: {:output, %{state.first_buffer | payload: frame}}],
-         %State{state | frame_acc: acc, first_buffer: buffer}}
+         %{state | frame_acc: acc, first_buffer: buffer}}
 
       {:error, _reason} = error ->
         error
