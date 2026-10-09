@@ -4,8 +4,6 @@ defmodule Membrane.RTP.VP8.RTPIntegrationTest do
   import Membrane.ChildrenSpec
   import Membrane.Testing.Assertions
 
-  require Membrane.Pad, as: Pad
-
   alias Membrane.Element.IVF
   alias Membrane.RTP
   alias Membrane.Testing
